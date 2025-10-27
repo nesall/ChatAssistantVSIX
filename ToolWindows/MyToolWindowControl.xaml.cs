@@ -1,18 +1,24 @@
-﻿using System.Windows;
+﻿using ChatAssistantVSIX.ToolWindows;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace ChatAssistantVSIX
 {
   public partial class MyToolWindowControl : UserControl
   {
-    public MyToolWindowControl()
+    public ToolWindowMessenger ToolWindowMessenger = null;
+    public MyToolWindowControl(ToolWindowMessenger toolWindowMessenger)
     {
+      toolWindowMessenger ??= new ToolWindowMessenger();
+      ToolWindowMessenger = toolWindowMessenger;
+      toolWindowMessenger.MessageReceived += OnMessageReceived;
       InitializeComponent();
     }
 
-    private void button1_Click(object sender, RoutedEventArgs e)
+    private void OnMessageReceived(object sender, string e)
     {
-      VS.MessageBox.Show("ChatAssistantVSIX", "Button clicked");
+      VS.MessageBox.ShowWarning("ButtomSettingsCommand", "Button clicked");
     }
+
   }
 }

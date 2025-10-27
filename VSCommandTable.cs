@@ -16,7 +16,7 @@ namespace ChatAssistantVSIX
         public const string ChatAssistantVSIXString = "597d1e18-b82e-4eb7-8156-2cc5144d3f2e";
         public static Guid ChatAssistantVSIX = new Guid(ChatAssistantVSIXString);
 
-        public const string guidImagesString = "3e4b3c38-549d-42c7-989f-812e1828fa49";
+        public const string guidImagesString = "4e0b36dc-6a3a-48cc-8258-ee321ebffcac";
         public static Guid guidImages = new Guid(guidImagesString);
     }
 
@@ -26,6 +26,9 @@ namespace ChatAssistantVSIX
     internal sealed partial class PackageIds
     {
         public const int MyCommand = 0x0100;
+        public const int TWindowToolbar = 0x1000;
+        public const int TWindowToolbarGroup = 0x1050;
+        public const int ButtonSettingsCommand = 0x0111;
         public const int bmpPicMyToolWindow = 0x0001;
     }
 }

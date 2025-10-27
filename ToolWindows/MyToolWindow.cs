@@ -1,4 +1,6 @@
-﻿using Microsoft.VisualStudio.Imaging;
+﻿using ChatAssistantVSIX.ToolWindows;
+using Microsoft.VisualStudio.Imaging;
+using System.ComponentModel.Design;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,9 +14,10 @@ namespace ChatAssistantVSIX
 
     public override Type PaneType => typeof(Pane);
 
-    public override Task<FrameworkElement> CreateAsync(int toolWindowId, CancellationToken cancellationToken)
+    public override async Task<FrameworkElement> CreateAsync(int toolWindowId, CancellationToken cancellationToken)
     {
-      return Task.FromResult<FrameworkElement>(new MyToolWindowControl());
+      ToolWindowMessenger toolWindowMessenger = await Package.GetServiceAsync<ToolWindowMessenger, ToolWindowMessenger>();
+      return new MyToolWindowControl(toolWindowMessenger);
     }
 
     [Guid("822ff34f-53b6-47c4-a1c6-c84b9464f79c")]
@@ -23,6 +26,7 @@ namespace ChatAssistantVSIX
       public Pane()
       {
         BitmapImageMoniker = KnownMonikers.ToolWindow;
+        ToolBar = new CommandID(PackageGuids.ChatAssistantVSIX, PackageIds.TWindowToolbar);
       }
     }
   }

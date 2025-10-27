@@ -2,6 +2,7 @@
 global using Microsoft.VisualStudio.Shell;
 global using System;
 global using Task = System.Threading.Tasks.Task;
+using ChatAssistantVSIX.ToolWindows;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -12,10 +13,13 @@ namespace ChatAssistantVSIX
   [ProvideToolWindow(typeof(MyToolWindow.Pane), Style = VsDockStyle.Tabbed, Window = WindowGuids.SolutionExplorer)]
   [ProvideMenuResource("Menus.ctmenu", 1)]
   [Guid(PackageGuids.ChatAssistantVSIXString)]
+  [ProvideService(typeof(ToolWindowMessenger), IsAsyncQueryable = true)]
   public sealed class ChatAssistantVSIXPackage : ToolkitPackage
   {
     protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
     {
+      AddService(typeof(ToolWindowMessenger), (_, _, _) => Task.FromResult<object>(new ToolWindowMessenger()));
+
       await this.RegisterCommandsAsync();
 
       this.RegisterToolWindows();
