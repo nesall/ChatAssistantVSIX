@@ -55,6 +55,7 @@
       <DependentUpon>source.extension.vsixmanifest</DependentUpon>
     </Compile>
     <Compile Include="ToolWindows\ToolWindowMessenger.cs" />
+    <Compile Include="Utils\ChatMessage.cs" />
     <Compile Include="Utils\MarkdownFlowDocument.cs" />
     <Compile Include="VSCommandTable.cs">
       <AutoGen>True</AutoGen>
