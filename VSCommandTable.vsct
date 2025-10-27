@@ -11,19 +11,27 @@
     <Buttons>
       <Button guid="ChatAssistantVSIX" id="MyCommand" priority="0x0100" type="Button">
         <Parent guid="VSMainMenu" id="View.DevWindowsGroup.OtherWindows.Group1"/>
-        <Icon guid="ImageCatalogGuid" id="ToolWindow" />
-        <CommandFlag>IconIsMoniker</CommandFlag>
+        <Icon guid="guidImages" id="bmpPicMyToolWindow" />
+        <!--<Icon guid="ImageCatalogGuid" id="ToolWindow" />-->
+        <!--<CommandFlag>IconIsMoniker</CommandFlag>-->
         <Strings>
           <ButtonText>My Tool Window</ButtonText>
           <LocCanonicalName>.View.MyToolWindow</LocCanonicalName>
         </Strings>
       </Button>
     </Buttons>
+
+    <Bitmaps>
+      <Bitmap guid="guidImages" href="Resources\logo.png" usedList="bmpPicMyToolWindow" />
+    </Bitmaps>
   </Commands>
 
   <Symbols>
     <GuidSymbol name="ChatAssistantVSIX" value="{597d1e18-b82e-4eb7-8156-2cc5144d3f2e}">
       <IDSymbol name="MyCommand" value="0x0100" />
+    </GuidSymbol>
+    <GuidSymbol name="guidImages" value="{3e4b3c38-549d-42c7-989f-812e1828fa49}">
+      <IDSymbol name="bmpPicMyToolWindow" value="1" />
     </GuidSymbol>
   </Symbols>
 </CommandTable>
