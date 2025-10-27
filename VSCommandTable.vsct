@@ -15,7 +15,7 @@
         <!--<Icon guid="ImageCatalogGuid" id="ToolWindow" />-->
         <!--<CommandFlag>IconIsMoniker</CommandFlag>-->
         <Strings>
-          <ButtonText>My Tool Window</ButtonText>
+          <ButtonText>PhenixCode Chat Assistant</ButtonText>
           <LocCanonicalName>.View.MyToolWindow</LocCanonicalName>
         </Strings>
       </Button>
