@@ -2,10 +2,10 @@
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
     <Identity Id="ChatAssistantVSIX.9a72f873-133b-4224-b774-e6d9648c420e" Version="1.0" Language="en-US" Publisher="Arman Sahakyan" />
-    <DisplayName>ChatAssistantVSIX</DisplayName>
-    <Description>Empty VSIX Project.</Description>
-    <Icon>Resources\Icon.png</Icon>
-    <PreviewImage>Resources\Icon.png</PreviewImage>
+    <DisplayName>PhenixCode Chat Assistant</DisplayName>
+    <Description>Coding assistant tool for Visual Studio.</Description>
+    <Icon>Resources\phenix90x90.png</Icon>
+    <PreviewImage>Resources\phenix90x90.png</PreviewImage>
   </Metadata>
   <Installation>
     <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0, 18.0)">
