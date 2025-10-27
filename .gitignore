@@ -1,0 +1,47 @@
+# Build output
+bin/
+obj/
+[Bb]uild/
+[Ll]og/
+[Ll]ogs/
+
+# VSIX artifacts
+*.vsix
+*.vsixmanifest.user
+*.pkgdef
+*.cache
+
+# Visual Studio
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.dbmdl
+*.pdb
+*.cachefile
+
+# NuGet
+packages/
+*.nupkg
+*.nuspec
+
+# Test results
+[Tt]est[Rr]esult*/
+*.coverage
+*.coveragexml
+
+# ReSharper / Rider
+_ReSharper*/
+*.DotSettings.user
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and temp
+*.log
+*.tmp
+*.bak
