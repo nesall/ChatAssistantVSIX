@@ -21,29 +21,32 @@
       </Button>
 
       <Button guid="ChatAssistantVSIX" id="ButtonSettingsCommand" priority="0x0001" type="Button">
-        <Parent guid="ChatAssistantVSIX" id="TWindowToolbarGroup"/>
+        <Parent guid="ChatAssistantVSIX" id="TWindowToolbarGroup1"/>
         <Icon guid="ImageCatalogGuid" id="Settings"/>
         <CommandFlag>IconIsMoniker</CommandFlag>
-        <!--<CommandFlag>IconAndText</CommandFlag>-->
         <Strings>
           <ButtonText>Settings</ButtonText>
         </Strings>
       </Button>
-      
-      <Button guid="ChatAssistantVSIX" id="ButtonInsertCommand" priority="0x0001" type="Button">
-        <Parent guid="ChatAssistantVSIX" id="TWindowToolbarGroup"/>
+
+      <Button guid="ChatAssistantVSIX" id="ButtonInsertCommand" priority="0x0003" type="Button">
+        <Parent guid="ChatAssistantVSIX" id="TWindowToolbarGroup2"/>
         <Icon guid="ImageCatalogGuid" id="CodeReviewWizard"/>
         <CommandFlag>IconIsMoniker</CommandFlag>
         <CommandFlag>IconAndText</CommandFlag>
         <Strings>
           <ButtonText>Insert code</ButtonText>
+          <LocCanonicalName>.Edit.InsertCodeSuggestion</LocCanonicalName>
         </Strings>
       </Button>
       
     </Buttons>
 
     <Groups>
-      <Group guid="ChatAssistantVSIX" id="TWindowToolbarGroup" priority="0x0000">
+      <Group guid="ChatAssistantVSIX" id="TWindowToolbarGroup1" priority="0x0000">
+        <Parent guid="ChatAssistantVSIX" id="TWindowToolbar" />
+      </Group>
+      <Group guid="ChatAssistantVSIX" id="TWindowToolbarGroup2" priority="0x0001">
         <Parent guid="ChatAssistantVSIX" id="TWindowToolbar" />
       </Group>
     </Groups>
@@ -66,10 +69,10 @@
     <GuidSymbol name="ChatAssistantVSIX" value="{597d1e18-b82e-4eb7-8156-2cc5144d3f2e}">
       <IDSymbol name="MyCommand" value="0x0100" />
       <IDSymbol name="TWindowToolbar" value="0x1000" />
-      <IDSymbol name="TWindowToolbarGroup" value="0x1050" />
+      <IDSymbol name="TWindowToolbarGroup1" value="0x1050" />
+      <IDSymbol name="TWindowToolbarGroup2" value="0x1051" />
       <IDSymbol name="ButtonSettingsCommand" value="0x0111" />
       <IDSymbol name="ButtonInsertCommand" value="0x0112" />
-
     </GuidSymbol>
     <GuidSymbol name="guidImages" value="{4e0b36dc-6a3a-48cc-8258-ee321ebffcac}">
       <IDSymbol name="bmpPicMyToolWindow" value="1" />

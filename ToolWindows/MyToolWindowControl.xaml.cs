@@ -1,17 +1,26 @@
 ﻿using ChatAssistantVSIX.ToolWindows;
 using ChatAssistantVSIX.Utils;
 using Microsoft.VisualStudio.Package;
+using Microsoft.VisualStudio.RpcContracts.DiagnosticManagement;
+using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Editor;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ChatAssistantVSIX
 {
   public partial class MyToolWindowControl : UserControl
   {
     private readonly string testReply = "The increment operator in C++ increases the value of a variable by one. It can be used in two forms: \r\n\r\n1. **Prefix (`++variable`)**: Increments the variable and then returns the new value.\r\n2. **Postfix (`variable++`)**: Returns the current value of the variable and then increments it.\r\n\r\nFor example:\r\n```cpp\r\nint x = 5;\r\nint y = ++x; // y is 6, x is 6\r\nint z = x++; // z is 6, x is 7\r\n```";
+
+    const string OpenTag = "/*BEGIN_CODE_SUGGESTION*/\n";
+    const string CloseTag = "\n/*END_CODE_SUGGESTION*/";
 
     private ItemsControl messageList;
     private TextBox inputBox;
@@ -213,12 +222,57 @@ namespace ChatAssistantVSIX
     {
       ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
       {
-        await VS.MessageBox.ShowWarningAsync(e, "Button clicked");
+        //await VS.MessageBox.ShowWarningAsync(e, "Button clicked");
+
+        switch (e)
+        {
+          case "ButtonSettingsCommand":
+            break;
+          case "ButtonInsertCommand":
+            await InsertSuggestionAsync();
+            break;
+          default:
+            break;
+        }
+
       }).FireAndForget();
+    }
+    
+    private async Task InsertSuggestionAsync()
+    {
+      DocumentView docView = await VS.Documents.GetActiveDocumentViewAsync();
+      if (docView?.TextView == null) return;
+
+      ITextView textView = docView.TextView;
+      ITextSnapshot snapshot = textView.TextSnapshot;
+      var pos = textView.Caret.Position.BufferPosition;
+
+      int currentLineNumber = pos.GetContainingLine().LineNumber;
+      if (currentLineNumber == 0) return; // No line above
+
+      ITextSnapshotLine aboveLine = snapshot.GetLineFromLineNumber(currentLineNumber - 1);
+      string aboveLineText = aboveLine.GetText().TrimEnd();
+
+      if (!string.IsNullOrWhiteSpace(aboveLineText))
+      {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        ITextSnapshotLine currentLine = snapshot.GetLineFromLineNumber(currentLineNumber);
+        string currentIndentation = currentLine.GetText().Substring(0, currentLine.GetText().TakeWhile(char.IsWhiteSpace).Count());
+        var text = currentIndentation + "int x = 7; // new code inserted after '" + aboveLineText + "'";
+        var buf = textView.TextBuffer;
+        var fullText = OpenTag + text + CloseTag;
+        var snap = buf.Insert(pos, fullText);
+        var span = new SnapshotSpan(snap, pos.Position, fullText.Length);
+        textView.Selection.Select(span, isReversed: false);
+        textView.Caret.MoveTo(span.End);
+      }
+      else
+      {
+        Debug.WriteLine("An empty line above. Skipped.");
+      }
     }
 
   }
-
   internal class MessageTemplateSelector : DataTemplateSelector
   {
     public DataTemplate UserTemplate { get; set; }
