@@ -3,7 +3,7 @@
 namespace ChatAssistantVSIX
 {
   [Command(PackageIds.ButtonSettingsCommand)]
-  internal sealed class ButtomSettingsCommand : BaseCommand<ButtomSettingsCommand>
+  internal sealed class ButtonSettingsCommand : BaseCommand<ButtonSettingsCommand>
   {
     protected override async Task ExecuteAsync(OleMenuCmdEventArgs e)
     {      
@@ -12,7 +12,7 @@ namespace ChatAssistantVSIX
       {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
         ToolWindowMessenger messenger = await Package.GetServiceAsync<ToolWindowMessenger, ToolWindowMessenger>();
-        messenger.Send("ButtonSettingsCommand Message");
+        messenger.Send("ButtonSettingsCommand");
       }).FireAndForget();
     }
   }

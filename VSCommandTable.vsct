@@ -30,6 +30,16 @@
         </Strings>
       </Button>
       
+      <Button guid="ChatAssistantVSIX" id="ButtonInsertCommand" priority="0x0001" type="Button">
+        <Parent guid="ChatAssistantVSIX" id="TWindowToolbarGroup"/>
+        <Icon guid="ImageCatalogGuid" id="CodeReviewWizard"/>
+        <CommandFlag>IconIsMoniker</CommandFlag>
+        <CommandFlag>IconAndText</CommandFlag>
+        <Strings>
+          <ButtonText>Insert code</ButtonText>
+        </Strings>
+      </Button>
+      
     </Buttons>
 
     <Groups>
@@ -58,6 +68,7 @@
       <IDSymbol name="TWindowToolbar" value="0x1000" />
       <IDSymbol name="TWindowToolbarGroup" value="0x1050" />
       <IDSymbol name="ButtonSettingsCommand" value="0x0111" />
+      <IDSymbol name="ButtonInsertCommand" value="0x0112" />
 
     </GuidSymbol>
     <GuidSymbol name="guidImages" value="{4e0b36dc-6a3a-48cc-8258-ee321ebffcac}">

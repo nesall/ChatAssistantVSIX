@@ -29,6 +29,7 @@ namespace ChatAssistantVSIX
         public const int TWindowToolbar = 0x1000;
         public const int TWindowToolbarGroup = 0x1050;
         public const int ButtonSettingsCommand = 0x0111;
+        public const int ButtonInsertCommand = 0x0112;
         public const int bmpPicMyToolWindow = 0x0001;
     }
 }

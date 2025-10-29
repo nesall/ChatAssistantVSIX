@@ -1,5 +1,6 @@
 ﻿using ChatAssistantVSIX.ToolWindows;
 using ChatAssistantVSIX.Utils;
+using Microsoft.VisualStudio.Package;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -210,7 +211,10 @@ namespace ChatAssistantVSIX
 
     private void OnMessageReceived(object sender, string e)
     {
-      VS.MessageBox.ShowWarning("ButtomSettingsCommand", "Button clicked");
+      ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+      {
+        await VS.MessageBox.ShowWarningAsync(e, "Button clicked");
+      }).FireAndForget();
     }
 
   }
