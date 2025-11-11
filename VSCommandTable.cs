@@ -16,6 +16,9 @@ namespace ChatAssistantVSIX
         public const string ChatAssistantVSIXString = "597d1e18-b82e-4eb7-8156-2cc5144d3f2e";
         public static Guid ChatAssistantVSIX = new Guid(ChatAssistantVSIXString);
 
+        public const string guidPackageCmdSetString = "9f212083-1a12-464b-9bc7-852184bb8bba";
+        public static Guid guidPackageCmdSet = new Guid(guidPackageCmdSetString);
+
         public const string guidImagesString = "4e0b36dc-6a3a-48cc-8258-ee321ebffcac";
         public static Guid guidImages = new Guid(guidImagesString);
     }
@@ -31,6 +34,9 @@ namespace ChatAssistantVSIX
         public const int TWindowToolbarGroup2 = 0x1051;
         public const int ButtonSettingsCommand = 0x0111;
         public const int ButtonInsertCommand = 0x0112;
+        public const int cmdidRejectGhostText = 0x0113;
+        public const int cmdidAcceptGhostText = 0x0114;
+        public const int cmdidButtonStatsCommand = 0x0115;
         public const int bmpPicMyToolWindow = 0x0001;
     }
 }

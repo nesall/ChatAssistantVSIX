@@ -1,5 +1,6 @@
 ﻿using ChatAssistantVSIX.ToolWindows;
 using ChatAssistantVSIX.Utils;
+using ChatAssistantVSIX.Utils.Adornment;
 using Microsoft.VisualStudio.Package;
 using Microsoft.VisualStudio.RpcContracts.DiagnosticManagement;
 using Microsoft.VisualStudio.Text;
@@ -95,7 +96,7 @@ namespace ChatAssistantVSIX
 
       sendButton = new Button
       {
-        Content = "Send",
+        Content = "Send!",
         MinWidth = 60,
         Height = 32,
         Margin = new Thickness(8, 0, 0, 0),
@@ -223,53 +224,113 @@ namespace ChatAssistantVSIX
       ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
       {
         //await VS.MessageBox.ShowWarningAsync(e, "Button clicked");
-
-        switch (e)
+        try
         {
-          case "ButtonSettingsCommand":
-            break;
-          case "ButtonInsertCommand":
-            await InsertSuggestionAsync();
-            break;
-          default:
-            break;
+          switch (e)
+          {
+            case "ButtonSettingsCommand":
+              break;
+            case "ButtonInsertCommand":
+              await InsertSuggestionAsync();
+              break;
+            case "cmdidAcceptGhostText":
+              await AcceptSuggestionAsync();
+              break;
+            case "cmdidRejectGhostText":
+              await RejectSuggestionAsync();
+              break;
+            default:
+              break;
+          }
         }
-
+        catch (Exception x)
+        {
+          Debug.WriteLine(x.Message);
+        }
+      
       }).FireAndForget();
     }
-    
+
     private async Task InsertSuggestionAsync()
     {
       DocumentView docView = await VS.Documents.GetActiveDocumentViewAsync();
       if (docView?.TextView == null) return;
 
-      ITextView textView = docView.TextView;
+      await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+      // Safe cast to IWpfTextView — DocumentView.TextView is usually an IWpfTextView in editor scenarios
+      IWpfTextView wpfView = docView.TextView as IWpfTextView;
+      if (wpfView == null)
+      {
+        Debug.WriteLine("Active document view is not an IWpfTextView. Cannot show adornment.");
+        return;
+      }
+
+      ITextView textView = wpfView; // still usable as ITextView
       ITextSnapshot snapshot = textView.TextSnapshot;
-      var pos = textView.Caret.Position.BufferPosition;
-
-      int currentLineNumber = pos.GetContainingLine().LineNumber;
+      var caretPos = textView.Caret.Position.BufferPosition;
+      int currentLineNumber = caretPos.GetContainingLine().LineNumber;
       if (currentLineNumber == 0) return; // No line above
-
       ITextSnapshotLine aboveLine = snapshot.GetLineFromLineNumber(currentLineNumber - 1);
       string aboveLineText = aboveLine.GetText().TrimEnd();
-
+      if (string.IsNullOrWhiteSpace(aboveLineText))
+      {
+        // Trying another line above.
+        if (0 <= currentLineNumber - 2)
+        {
+          aboveLine = snapshot.GetLineFromLineNumber(currentLineNumber - 2);
+          aboveLineText = aboveLine.GetText().TrimEnd();
+        }
+      }
       if (!string.IsNullOrWhiteSpace(aboveLineText))
       {
-        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-        ITextSnapshotLine currentLine = snapshot.GetLineFromLineNumber(currentLineNumber);
-        string currentIndentation = currentLine.GetText().Substring(0, currentLine.GetText().TakeWhile(char.IsWhiteSpace).Count());
-        var text = currentIndentation + "int x = 7; // new code inserted after '" + aboveLineText + "'";
-        var buf = textView.TextBuffer;
+
+        // MOCK TEXT TO INSERT
+        var text = "int x = 7; // new code inserted after '" + aboveLineText + "'";
         var fullText = OpenTag + text + CloseTag;
-        var snap = buf.Insert(pos, fullText);
-        var span = new SnapshotSpan(snap, pos.Position, fullText.Length);
-        textView.Selection.Select(span, isReversed: false);
-        textView.Caret.MoveTo(span.End);
+
+        // TODO: show visual adornment
+
+        // Create/get adornment manager and show ghost text
+        var adornmentLayer = wpfView.GetAdornmentLayer("MyGhostText");
+        var manager = wpfView.Properties.GetOrCreateSingletonProperty(
+                          typeof(GhostAdornmentManager),
+                          () => new GhostAdornmentManager(wpfView, adornmentLayer));
+        manager.Show(fullText);
+
+
+        // MOCK INSERTION
+        //var buf = textView.TextBuffer;
+        //var snap = buf.Insert(caretPos, fullText);
+        //var span = new SnapshotSpan(snap, caretPos.Position, fullText.Length);
+        //textView.Selection.Select(span, isReversed: false);
+        //textView.Caret.MoveTo(span.End);
+        //await VS.Commands.ExecuteAsync("Edit.FormatSelection");
       }
       else
       {
-        Debug.WriteLine("An empty line above. Skipped.");
+        Debug.WriteLine("Empty lines above. Skipped.");
       }
+    }
+
+    private async Task AcceptSuggestionAsync()
+    {
+      await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+      DocumentView docView = await VS.Documents.GetActiveDocumentViewAsync();
+      if (docView?.TextView == null) return;
+      var wpfView = docView.TextView;
+      var mgr = wpfView.Properties.GetProperty<GhostAdornmentManager>(typeof(GhostAdornmentManager));
+      mgr?.Accept();
+    }
+
+    private async Task RejectSuggestionAsync()
+    {
+      await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+      DocumentView docView = await VS.Documents.GetActiveDocumentViewAsync();
+      if (docView?.TextView == null) return;
+      var wpfView = docView.TextView;
+      var mgr = wpfView.Properties.GetProperty<GhostAdornmentManager>(typeof(GhostAdornmentManager));
+      mgr?.Clear();
     }
 
   }

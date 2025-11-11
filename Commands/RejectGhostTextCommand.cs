@@ -2,13 +2,13 @@
 
 namespace ChatAssistantVSIX
 {
-  [Command(PackageIds.ButtonInsertCommand)]
-  internal sealed class ButtonInsertCommand : MessengerCommand<ButtonInsertCommand>
+  [Command(PackageIds.cmdidRejectGhostText)]
+  internal sealed class RejectGhostTextCommand : MessengerCommand<RejectGhostTextCommand>
   {
     protected override async Task ExecuteAsync(OleMenuCmdEventArgs e)
     {
       await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-      SendToolWindowMessageFireAndForget("ButtonInsertCommand");
+      SendToolWindowMessageFireAndForget("cmdidRejectGhostText");
     }
   }
 }

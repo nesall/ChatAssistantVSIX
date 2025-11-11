@@ -2,7 +2,9 @@
 global using Microsoft.VisualStudio.Shell;
 global using System;
 global using Task = System.Threading.Tasks.Task;
+using ChatAssistantVSIX.Options;
 using ChatAssistantVSIX.ToolWindows;
+using Microsoft.VisualStudio.Text.Editor;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -14,6 +16,7 @@ namespace ChatAssistantVSIX
   [ProvideMenuResource("Menus.ctmenu", 1)]
   [Guid(PackageGuids.ChatAssistantVSIXString)]
   [ProvideService(typeof(ToolWindowMessenger), IsAsyncQueryable = true)]
+  [ProvideOptionPage(typeof(IndexerOptionsPage), "PhenixCode Assistant", "General", 0, 0, true)]
   public sealed class ChatAssistantVSIXPackage : ToolkitPackage
   {
     protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)

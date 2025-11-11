@@ -29,6 +29,15 @@
         </Strings>
       </Button>
 
+      <Button guid="ChatAssistantVSIX" id="cmdidButtonStatsCommand" priority="0x0001" type="Button">
+        <Parent guid="ChatAssistantVSIX" id="TWindowToolbarGroup1"/>
+        <Icon guid="ImageCatalogGuid" id="StatusInformationOutline"/>
+        <CommandFlag>IconIsMoniker</CommandFlag>
+        <Strings>
+          <ButtonText>Statistics</ButtonText>
+        </Strings>
+      </Button>
+
       <Button guid="ChatAssistantVSIX" id="ButtonInsertCommand" priority="0x0003" type="Button">
         <Parent guid="ChatAssistantVSIX" id="TWindowToolbarGroup2"/>
         <Icon guid="ImageCatalogGuid" id="CodeReviewWizard"/>
@@ -36,10 +45,25 @@
         <CommandFlag>IconAndText</CommandFlag>
         <Strings>
           <ButtonText>Insert code</ButtonText>
-          <LocCanonicalName>.Edit.InsertCodeSuggestion</LocCanonicalName>
+          <LocCanonicalName>.Edit.InsertPhenixCodeSuggestion</LocCanonicalName>
         </Strings>
       </Button>
-      
+
+      <!-- Invisible button for the command -->
+      <Button guid="ChatAssistantVSIX" id="cmdidAcceptGhostText" priority="0x0000" type="Button">
+        <Strings>
+          <ButtonText>Accept Ghost Text</ButtonText>
+          <LocCanonicalName>.Edit.AcceptPhenixCodeSuggestion</LocCanonicalName>
+        </Strings>
+      </Button>
+
+      <!-- Invisible button for the command -->
+      <Button guid="ChatAssistantVSIX" id="cmdidRejectGhostText" priority="0x0000" type="Button">
+        <Strings>
+          <ButtonText>Reject Ghost Text</ButtonText>
+          <LocCanonicalName>.Edit.RejectPhenixCodeSuggestion</LocCanonicalName>
+        </Strings>
+      </Button>
     </Buttons>
 
     <Groups>
@@ -62,9 +86,10 @@
     
     <Bitmaps>
       <Bitmap guid="guidImages" href="Resources\logo.png" usedList="bmpPicMyToolWindow" />
-    </Bitmaps>
+    </Bitmaps>   
+    
+    
   </Commands>
-
   <Symbols>
     <GuidSymbol name="ChatAssistantVSIX" value="{597d1e18-b82e-4eb7-8156-2cc5144d3f2e}">
       <IDSymbol name="MyCommand" value="0x0100" />
@@ -73,6 +98,13 @@
       <IDSymbol name="TWindowToolbarGroup2" value="0x1051" />
       <IDSymbol name="ButtonSettingsCommand" value="0x0111" />
       <IDSymbol name="ButtonInsertCommand" value="0x0112" />
+      <IDSymbol name="cmdidRejectGhostText" value="0x0113" />
+      <IDSymbol name="cmdidAcceptGhostText" value="0x0114" />
+      <IDSymbol name="cmdidButtonStatsCommand" value="0x0115" />
+    </GuidSymbol>
+    <GuidSymbol name="guidPackageCmdSet" value="{9f212083-1a12-464b-9bc7-852184bb8bba}">
+      <!--<IDSymbol name="cmdidAcceptGhostText" value="0x0200" />
+      <IDSymbol name="cmdidDismissGhostText" value="0x0201" />-->
     </GuidSymbol>
     <GuidSymbol name="guidImages" value="{4e0b36dc-6a3a-48cc-8258-ee321ebffcac}">
       <IDSymbol name="bmpPicMyToolWindow" value="1" />
