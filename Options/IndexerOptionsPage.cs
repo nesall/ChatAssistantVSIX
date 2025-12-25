@@ -24,25 +24,39 @@ namespace ChatAssistantVSIX.Options
   {
     #region --- UI properties (only these appear in the grid) ---
 
-    [Category("Folders")]
+    [Category("Sources")]
     [DisplayName("Root paths")]
-    [Description("Semicolon-separated folders to index.  Use $(SolutionDir) for the open solution.")]
+    [Description("Semicolon-separated folders to index. Use $(SolutionDir) for the open solution.")]
     [Editor(typeof(FolderListEditor), typeof(UITypeEditor))]
     public string RootPaths { get; set; } = "$(SolutionDir)";
 
-    [Category("Folders")]
+    [Category("Sources")]
     [DisplayName("Exclude patterns")]
-    [Description("Glob patterns to skip (semicolon separated).")]
+    [Description("Global patterns to skip (semicolon separated).")]
     public string ExcludePatterns { get; set; } =
         "**/bin/**;**/obj/**;**/node_modules/**;**/.git/**;**/dist/**";
 
+    [Category("Sources")]
+    [DisplayName("Default extensions")]
+    [Description("Extensions to scan files with (semicolon separated)")]
+    public string DefaultExtensions { get; set; } = ".c;.cpp;.h";
+
     // ---------- Embedding ----------
 
+    private string embeddingApi_ = "custom";
     [Category("Embedding")]
     [DisplayName("Current API")]
     [Description("Which embedding API block to activate.")]
-    [TypeConverter(typeof(ApiChoiceConverter))]
-    public string EmbeddingApi { get; set; } = "local";
+    [TypeConverter(typeof(ApiChoiceConverterEmb))]
+    public string EmbeddingApi
+    {
+      get => embeddingApi_;
+      set
+      {
+        embeddingApi_ = value;
+        AutoFillApiFields("embedding", value);
+      }
+    }
 
     [Category("Embedding")]
     [DisplayName("API URL")]
@@ -52,7 +66,7 @@ namespace ChatAssistantVSIX.Options
     [Category("Embedding")]
     [DisplayName("API key")]
     [Description("Only used when 'Current API' = custom")]
-    [PasswordPropertyText(true)]
+    //[PasswordPropertyText(true)]
     public string EmbeddingKey { get; set; } = "";
 
     [Category("Embedding")]
@@ -60,13 +74,27 @@ namespace ChatAssistantVSIX.Options
     [Description("Only used when 'Current API' = custom")]
     public string EmbeddingModel { get; set; } = "";
 
+    [Category("Embedding")]
+    [DisplayName("Vector Dimension")]
+    [Description("Dimension of the embedding vectors produced by the model.")]
+    public int EmbeddingVecDim { get; set; } = 768;
+
     // ---------- Generation ----------
 
+    private string generationApi_ = "mistral-devstral";
     [Category("Generation")]
     [DisplayName("Current API")]
     [Description("Which generation API block to activate.")]
-    [TypeConverter(typeof(ApiChoiceConverter))]
-    public string GenerationApi { get; set; } = "mistral-devstral";
+    [TypeConverter(typeof(ApiChoiceConverterGen))]
+    public string GenerationApi
+    {
+      get => generationApi_;
+      set
+      {
+        generationApi_ = value;
+        AutoFillApiFields("generation", value);
+      }
+    }
 
     [Category("Generation")]
     [DisplayName("API URL")]
@@ -76,7 +104,7 @@ namespace ChatAssistantVSIX.Options
     [Category("Generation")]
     [DisplayName("API key")]
     [Description("Only used when 'Current API' = custom")]
-    [PasswordPropertyText(true)]
+    //[PasswordPropertyText(true)]
     public string GenerationKey { get; set; } = "";
 
     [Category("Generation")]
@@ -98,9 +126,9 @@ namespace ChatAssistantVSIX.Options
 
     [Category("Chunking")]
     [DisplayName("Overlap %")]
-    [Description("Overlap between consecutive chunks (0-100).")]
-    [TypeConverter(typeof(OverlapConverter))]
-    public int ChunkOverlapPercent { get; set; } = 20;
+    [Description("Overlap between consecutive chunks (0-1).")]
+    //[TypeConverter(typeof(OverlapConverter))]
+    public double ChunkOverlapPercent { get; set; } = 0.2;
 
     // ---------- Helpers ----------
 
@@ -111,10 +139,78 @@ namespace ChatAssistantVSIX.Options
     public string OpenSettings => "Click [...]";
 
     [Category("Configuration file")]
-    [DisplayName("Restore defaults")]
-    [Description("Overwrite settings.json with the template shipped in the extension.")]
-    [Editor(typeof(RestoreDefaultsEditor), typeof(UITypeEditor))]
-    public string RestoreDefaults => "Click [...]";
+    [DisplayName("PhenixCode Executable")]
+    [Description("Path to phenixcode-core.exe")]
+    public string ExecutablePath { get; set; } = "";
+
+    #endregion
+
+    //#region --- Dynamic ReadOnly Logic ---
+
+    ////private Dictionary<string, PropertyDescriptor> propertyDescriptors_ = new Dictionary<string, PropertyDescriptor>();
+    //public void updateProperties()
+    //{
+    //  var props = TypeDescriptor.GetProperties(this);
+
+    //  // Define which fields depend on "custom" status
+    //  bool isEmbCustom = EmbeddingApi == "custom";
+    //  bool isGenCustom = GenerationApi == "custom";
+
+    //  //SetReadOnly(props, "EmbeddingUrl", !isEmbCustom);
+    //  //SetReadOnly(props, "EmbeddingKey", !isEmbCustom);
+    //  //SetReadOnly(props, "EmbeddingModel", !isEmbCustom);
+
+    //  SetReadOnly(props, "GenerationUrl", !isGenCustom);
+    //  //SetReadOnly(props, "GenerationKey", !isGenCustom);
+    //  //SetReadOnly(props, "GenerationModel", !isGenCustom);
+    //}
+
+    //private void SetReadOnly(PropertyDescriptorCollection props, string name, bool readOnly)
+    //{
+    //  var prop = props[name];
+    //  if (prop != null)
+    //  {
+    //    var attr = prop.Attributes[typeof(ReadOnlyAttribute)] as ReadOnlyAttribute;
+        
+    //    var field = typeof(ReadOnlyAttribute).GetField("isReadOnly",
+    //        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+    //    // This hack updates the existing attribute instance's internal state
+    //    field?.SetValue(attr, readOnly);
+    //  }
+    //}
+
+    //#endregion
+
+    #region --- Auto-fill Logic ---
+    private void AutoFillApiFields(string section, string apiId)
+    {
+      try
+      {
+        var json = ReadJson();
+        var api = json[section]?["apis"]?.FirstOrDefault(a => a["id"]?.Value<string>() == apiId);
+
+        if (api == null) return;
+
+        if (section == "embedding")
+        {
+          EmbeddingUrl = api["api_url"]?.Value<string>() ?? "";
+          EmbeddingKey = api["api_key"]?.Value<string>() ?? "";
+          EmbeddingModel = api["model"]?.Value<string>() ?? "";
+        }
+        else if (section == "generation")
+        {
+          GenerationUrl = api["api_url"]?.Value<string>() ?? "";
+          GenerationKey = api["api_key"]?.Value<string>() ?? "";
+          GenerationModel = api["model"]?.Value<string>() ?? "";
+        }
+        //updateProperties();
+      }
+      catch (Exception ex)
+      {
+        Debug.WriteLine($"Failed to auto-fill {section} fields: {ex.Message}");
+      }
+    }
 
     #endregion
 
@@ -122,7 +218,7 @@ namespace ChatAssistantVSIX.Options
 
     public override void LoadSettingsFromStorage()
     {
-      base.LoadSettingsFromStorage();
+      //base.LoadSettingsFromStorage();
       var json = ReadJson();
       MapJsonToGrid(json);
     }
@@ -132,7 +228,7 @@ namespace ChatAssistantVSIX.Options
       var json = ReadJson();
       MapGridToJson(json);
       WriteJson(json);
-      base.SaveSettingsToStorage();
+      //base.SaveSettingsToStorage();
 
       // notify running service
       _ = Task.Run(async () =>
@@ -159,12 +255,39 @@ namespace ChatAssistantVSIX.Options
       }
       catch
       {
-        // first run – copy template
+        // first run – ensure directory exists and try to copy template
         Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath));
-        var tpl = Path.Combine(
-            Path.GetDirectoryName(typeof(IndexerOptionsPage).Assembly.Location),
-            "settings.template.json");
-        if (File.Exists(tpl)) File.Copy(tpl, SettingsPath, false);
+        var asm = typeof(IndexerOptionsPage).Assembly;
+
+        // 1) Try to find an embedded resource named settings.default.json
+        try
+        {
+          var resourceName = asm.GetManifestResourceNames()
+                                .FirstOrDefault(n => n.EndsWith("Resources.settings.default.json", StringComparison.OrdinalIgnoreCase)
+                                                  || n.EndsWith("settings.default.json", StringComparison.OrdinalIgnoreCase));
+          if (resourceName != null)
+          {
+            using (var s = asm.GetManifestResourceStream(resourceName))
+            {
+              if (s != null)
+              {
+                using (var sr = new StreamReader(s, Encoding.UTF8))
+                {
+                  File.WriteAllText(SettingsPath, sr.ReadToEnd());
+                  return JObject.Parse(File.ReadAllText(SettingsPath));
+                }
+              }
+            }
+          }
+        }
+        catch { /* ignore and fallback to file copy */ }
+
+        // 2) Fallback: copy from the Resources folder next to the extension assembly
+        var tpl = Path.Combine(Path.GetDirectoryName(asm.Location), "Resources", "settings.default.json");
+        if (File.Exists(tpl))
+          File.Copy(tpl, SettingsPath, false);
+
+        // If copy succeeded (or even if not), attempt to load the file (will throw if missing)
         return JObject.Parse(File.ReadAllText(SettingsPath));
       }
     }
@@ -179,16 +302,14 @@ namespace ChatAssistantVSIX.Options
     {
       // folders
       var src = j["source"];
-      RootPaths = string.Join(";", src["paths"].ToObject<JArray>()
-                                  .Select(t => t["path"].Value<string>()));
-      ExcludePatterns = string.Join(";", src["global_exclude"]
-                                  .ToObject<string[]>());
+      RootPaths = string.Join(";", src["paths"].ToObject<JArray>().Select(t => t["path"].Value<string>()));
+      ExcludePatterns = string.Join(";", src["global_exclude"].ToObject<string[]>());
+      DefaultExtensions = string.Join(";", src["default_extensions"].ToObject<string[]>());
 
       // embedding
       var emb = j["embedding"];
-      EmbeddingApi = emb["current_api"]?.Value<string>() ?? "local";
-      var customEmb = emb["apis"]?.FirstOrDefault(
-          a => a["id"]?.Value<string>() == "custom");
+      EmbeddingApi = emb["current_api"]?.Value<string>() ?? "custom";
+      var customEmb = emb["apis"]?.FirstOrDefault(a => a["id"]?.Value<string>() == "custom");
       if (customEmb != null)
       {
         EmbeddingUrl = customEmb["api_url"]?.Value<string>() ?? "";
@@ -196,11 +317,17 @@ namespace ChatAssistantVSIX.Options
         EmbeddingModel = customEmb["model"]?.Value<string>() ?? "";
       }
 
+      // database
+      var db = j["database"];
+      if (db != null)
+      {
+        EmbeddingVecDim = db["vector_dim"]?.Value<int>() ?? 768;
+      }
+
       // generation
       var gen = j["generation"];
       GenerationApi = gen["current_api"]?.Value<string>() ?? "mistral-devstral";
-      var customGen = gen["apis"]?.FirstOrDefault(
-          a => a["id"]?.Value<string>() == "custom");
+      var customGen = gen["apis"]?.FirstOrDefault(a => a["id"]?.Value<string>() == "custom");
       if (customGen != null)
       {
         GenerationUrl = customGen["api_url"]?.Value<string>() ?? "";
@@ -212,8 +339,10 @@ namespace ChatAssistantVSIX.Options
       var chk = j["chunking"];
       ChunkMinTokens = chk["nof_min_tokens"]?.Value<int>() ?? 50;
       ChunkMaxTokens = chk["nof_max_tokens"]?.Value<int>() ?? 450;
-      ChunkOverlapPercent = (int)Math.Round(
-          (chk["overlap_percentage"]?.Value<double>() ?? 0.2) * 100);
+      ChunkOverlapPercent = chk["overlap_percentage"]?.Value<double>() ?? 0.2;
+
+      // Executable path
+      ExecutablePath = j["_exec"]?.Value<string>() ?? "";
     }
 
     void MapGridToJson(JObject j)
@@ -231,11 +360,11 @@ namespace ChatAssistantVSIX.Options
         });
       j["source"]["paths"] = arr;
       j["source"]["global_exclude"] = new JArray(ExcludePatterns.Split(';'));
+      j["source"]["default_extensions"] = new JArray(DefaultExtensions.Split(';'));
 
       // embedding
       j["embedding"]["current_api"] = EmbeddingApi;
-      var ce = j["embedding"]["apis"].FirstOrDefault(
-          a => a["id"]?.Value<string>() == "custom");
+      var ce = j["embedding"]["apis"].FirstOrDefault(a => a["id"]?.Value<string>() == "custom");
       if (ce != null)
       {
         ce["api_url"] = EmbeddingUrl;
@@ -243,10 +372,12 @@ namespace ChatAssistantVSIX.Options
         ce["model"] = EmbeddingModel;
       }
 
+      // database
+      j["database"]["vector_dim"] = EmbeddingVecDim;
+
       // generation
       j["generation"]["current_api"] = GenerationApi;
-      var cg = j["generation"]["apis"].FirstOrDefault(
-          a => a["id"]?.Value<string>() == "custom");
+      var cg = j["generation"]["apis"].FirstOrDefault(a => a["id"]?.Value<string>() == "custom");
       if (cg != null)
       {
         cg["api_url"] = GenerationUrl;
@@ -257,35 +388,82 @@ namespace ChatAssistantVSIX.Options
       // chunking
       j["chunking"]["nof_min_tokens"] = ChunkMinTokens;
       j["chunking"]["nof_max_tokens"] = ChunkMaxTokens;
-      j["chunking"]["overlap_percentage"] = ChunkOverlapPercent / 100.0;
+      j["chunking"]["overlap_percentage"] = ChunkOverlapPercent;
+
+      // Executable path
+      j["_exec"] = ExecutablePath;
     }
 
     #endregion
   }
 
-  class ApiChoiceConverter : StringConverter
+  class ApiChoiceConverterEmb : StringConverter
   {
     public override bool GetStandardValuesSupported(ITypeDescriptorContext ctx) => true;
+
     public override StandardValuesCollection GetStandardValues(ITypeDescriptorContext ctx)
     {
-      // quick hard-coded list – you can read from json if you want
-      return new StandardValuesCollection(new[] {
-            "local", "custom",
-            "openai-4o-mini","mistral-devstral","gemini-2.0-flash","deepseek","xai"
-        });
+      var choices = new List<string> { };
+      try
+      {
+        var json = JObject.Parse(File.ReadAllText(IndexerOptionsPage.SettingsPath));
+        var apis = json["embedding"]?["apis"]?.ToObject<JArray>();
+        if (apis != null)
+        {
+          foreach (var api in apis)
+          {
+            var id = api["id"]?.Value<string>();
+            if (!string.IsNullOrEmpty(id) && !choices.Contains(id))
+              choices.Add(id);
+          }
+        }
+      }
+      catch
+      {
+        Debug.WriteLine("Failed to read settings.json for embedding APIs.");
+      }
+      return new StandardValuesCollection(choices.Distinct().ToList());
     }
   }
 
-  class OverlapConverter : Int32Converter
+  class ApiChoiceConverterGen : StringConverter
   {
-    public override object ConvertTo(ITypeDescriptorContext c, System.Globalization.CultureInfo ci,
-                                     object value, Type dest)
+    public override bool GetStandardValuesSupported(ITypeDescriptorContext ctx) => true;
+
+    public override StandardValuesCollection GetStandardValues(ITypeDescriptorContext ctx)
     {
-      if (dest == typeof(string))
-        return value.ToString() + " %";
-      return base.ConvertTo(c, ci, value, dest);
+      var choices = new List<string> { };
+      try
+      {
+        var json = JObject.Parse(File.ReadAllText(IndexerOptionsPage.SettingsPath));
+        var apis = json["generation"]?["apis"]?.ToObject<JArray>();
+        if (apis != null)
+        {
+          foreach (var api in apis)
+          {
+            var id = api["id"]?.Value<string>();
+            if (!string.IsNullOrEmpty(id) && !choices.Contains(id))
+              choices.Add(id);
+          }
+        }
+      }
+      catch
+      {
+        Debug.WriteLine("Failed to read settings.json for generation APIs.");
+      }
+      return new StandardValuesCollection(choices.Distinct().ToList());
     }
   }
+
+  //class OverlapConverter : Int32Converter
+  //{
+  //  public override object ConvertTo(ITypeDescriptorContext c, System.Globalization.CultureInfo ci, object value, Type dest)
+  //  {
+  //    if (dest == typeof(string))
+  //      return value.ToString() + " %";
+  //    return base.ConvertTo(c, ci, value, dest);
+  //  }
+  //}
 
   class FolderListEditor : UITypeEditor
   {
@@ -319,30 +497,6 @@ namespace ChatAssistantVSIX.Options
         var dte = await AsyncServiceProvider.GlobalProvider.GetServiceAsync(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
         dte?.ItemOperations.OpenFile(path);
       });
-      return value;
-    }
-  }
-
-  class RestoreDefaultsEditor : UITypeEditor
-  {
-    public override UITypeEditorEditStyle GetEditStyle(ITypeDescriptorContext ctx) => UITypeEditorEditStyle.Modal;
-    public override object EditValue(ITypeDescriptorContext ctx, IServiceProvider provider, object value)
-    {
-      var tpl = Path.Combine(
-          Path.GetDirectoryName(typeof(IndexerOptionsPage).Assembly.Location),
-          "settings.template.json");
-      if (File.Exists(tpl))
-      {
-        Directory.CreateDirectory(Path.GetDirectoryName(IndexerOptionsPage.SettingsPath));
-        File.Copy(tpl, IndexerOptionsPage.SettingsPath, overwrite: true);
-        VsShellUtilities.ShowMessageBox(
-            provider.GetService(typeof(SVsUIShell)) as IServiceProvider,
-            "settings.json has been restored to the template defaults.",
-            "Chat Assistant",
-            OLEMSGICON.OLEMSGICON_INFO,
-            OLEMSGBUTTON.OLEMSGBUTTON_OK,
-            OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
-      }
       return value;
     }
   }
