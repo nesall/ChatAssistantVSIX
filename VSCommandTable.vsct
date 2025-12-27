@@ -38,6 +38,15 @@
         </Strings>
       </Button>
 
+      <Button guid="ChatAssistantVSIX" id="cmdidButtonClearChat" priority="0x0001" type="Button">
+        <Parent guid="ChatAssistantVSIX" id="TWindowToolbarGroup1"/>
+        <Icon guid="ImageCatalogGuid" id="ClearWindowContent"/>
+        <CommandFlag>IconIsMoniker</CommandFlag>
+        <Strings>
+          <ButtonText>Clear Chat</ButtonText>
+        </Strings>
+      </Button>
+
       <Button guid="ChatAssistantVSIX" id="ButtonInsertCommand" priority="0x0003" type="Button">
         <Parent guid="ChatAssistantVSIX" id="TWindowToolbarGroup2"/>
         <Icon guid="ImageCatalogGuid" id="CodeReviewWizard"/>
@@ -73,6 +82,9 @@
       <Group guid="ChatAssistantVSIX" id="TWindowToolbarGroup2" priority="0x0001">
         <Parent guid="ChatAssistantVSIX" id="TWindowToolbar" />
       </Group>
+      <Group guid="ChatAssistantVSIX" id="TWindowToolbarGroup3" priority="0x0002">
+        <Parent guid="ChatAssistantVSIX" id="TWindowToolbar" />
+      </Group>
     </Groups>
 
     <Menus>
@@ -96,11 +108,13 @@
       <IDSymbol name="TWindowToolbar" value="0x1000" />
       <IDSymbol name="TWindowToolbarGroup1" value="0x1050" />
       <IDSymbol name="TWindowToolbarGroup2" value="0x1051" />
+      <IDSymbol name="TWindowToolbarGroup3" value="0x1052" />
       <IDSymbol name="ButtonSettingsCommand" value="0x0111" />
       <IDSymbol name="ButtonInsertCommand" value="0x0112" />
       <IDSymbol name="cmdidRejectGhostText" value="0x0113" />
       <IDSymbol name="cmdidAcceptGhostText" value="0x0114" />
       <IDSymbol name="cmdidButtonStatsCommand" value="0x0115" />
+      <IDSymbol name="cmdidButtonClearChat" value="0x0116" />
     </GuidSymbol>
     <GuidSymbol name="guidPackageCmdSet" value="{9f212083-1a12-464b-9bc7-852184bb8bba}">
       <!--<IDSymbol name="cmdidAcceptGhostText" value="0x0200" />

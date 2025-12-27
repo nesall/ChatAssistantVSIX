@@ -13,12 +13,14 @@ namespace ChatAssistantVSIX
   {
     protected override async Task ExecuteAsync(OleMenuCmdEventArgs e)
     {
-      await VS.MessageBox.ShowAsync(
-        "Settings are in the global Options page.",
-        "Tools -> Options -> PhenixCode Assistant",
-        icon: OLEMSGICON.OLEMSGICON_INFO,
-        buttons: OLEMSGBUTTON.OLEMSGBUTTON_OK
-        );
+      await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+      var dlg = new SettingsDialog();
+
+      var hwnd = Process.GetCurrentProcess().MainWindowHandle;
+      new WindowInteropHelper(dlg) { Owner = hwnd };
+
+      dlg.ShowDialog();
     }
   }
 }

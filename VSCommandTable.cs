@@ -32,11 +32,13 @@ namespace ChatAssistantVSIX
         public const int TWindowToolbar = 0x1000;
         public const int TWindowToolbarGroup1 = 0x1050;
         public const int TWindowToolbarGroup2 = 0x1051;
+        public const int TWindowToolbarGroup3 = 0x1052;
         public const int ButtonSettingsCommand = 0x0111;
         public const int ButtonInsertCommand = 0x0112;
         public const int cmdidRejectGhostText = 0x0113;
         public const int cmdidAcceptGhostText = 0x0114;
         public const int cmdidButtonStatsCommand = 0x0115;
+        public const int cmdidButtonClearChat = 0x0116;
         public const int bmpPicMyToolWindow = 0x0001;
     }
 }

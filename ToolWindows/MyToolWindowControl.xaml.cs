@@ -239,6 +239,9 @@ namespace ChatAssistantVSIX
             case "cmdidRejectGhostText":
               await RejectSuggestionAsync();
               break;
+            case "cmdidButtonClearChat":
+              await ClearChatAsync();
+              break;
             default:
               break;
           }
@@ -331,6 +334,12 @@ namespace ChatAssistantVSIX
       var wpfView = docView.TextView;
       var mgr = wpfView.Properties.GetProperty<GhostAdornmentManager>(typeof(GhostAdornmentManager));
       mgr?.Clear();
+    }
+
+    private async Task ClearChatAsync()
+    {
+      await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+      Messages.Clear();
     }
 
   }
