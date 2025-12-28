@@ -78,6 +78,7 @@
     <Compile Include="Utils\Adornment\MyGhostTextLayerDefinition.cs" />
     <Compile Include="Utils\ChatMessage.cs" />
     <Compile Include="Utils\MarkdownFlowDocument.cs" />
+    <Compile Include="Utils\PhenixCodeCoreService.cs" />
     <Compile Include="VSCommandTable.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

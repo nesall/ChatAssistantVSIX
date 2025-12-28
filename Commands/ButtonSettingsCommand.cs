@@ -1,10 +1,6 @@
 ﻿using ChatAssistantVSIX.Dialogs;
-using ChatAssistantVSIX.ToolWindows;
-using System.Windows.Interop;
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
-using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Windows.Interop;
 
 namespace ChatAssistantVSIX
 {
@@ -17,8 +13,8 @@ namespace ChatAssistantVSIX
 
       var dlg = new SettingsDialog();
 
-      var hwnd = Process.GetCurrentProcess().MainWindowHandle;
-      new WindowInteropHelper(dlg) { Owner = hwnd };
+      //var hwnd = Process.GetCurrentProcess().MainWindowHandle;
+      //new WindowInteropHelper(dlg) { Owner = hwnd };
 
       dlg.ShowDialog();
     }

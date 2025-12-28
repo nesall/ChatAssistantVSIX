@@ -1,18 +1,16 @@
 ﻿using ChatAssistantVSIX.ToolWindows;
 using ChatAssistantVSIX.Utils;
 using ChatAssistantVSIX.Utils.Adornment;
-using Microsoft.VisualStudio.Package;
-using Microsoft.VisualStudio.RpcContracts.DiagnosticManagement;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
+using Microsoft.VisualStudio.TextManager.Interop;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace ChatAssistantVSIX
 {
@@ -87,8 +85,6 @@ namespace ChatAssistantVSIX
         VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
         VerticalContentAlignment = VerticalAlignment.Center,
         Padding = new Thickness(8, 6, 8, 6),
-        Background = this.TryFindResource(VsBrushes.SearchBoxBackgroundKey) as Brush,
-        Foreground = this.TryFindResource(VsBrushes.WindowTextKey) as Brush
       };
       inputBox.PreviewKeyDown += InputBox_PreviewKeyDown;
       Grid.SetColumn(inputBox, 0);
@@ -96,12 +92,10 @@ namespace ChatAssistantVSIX
 
       sendButton = new Button
       {
-        Content = "Send!",
+        Content = "Send",
         MinWidth = 60,
         Height = 32,
         Margin = new Thickness(8, 0, 0, 0),
-        Background = this.TryFindResource(VsBrushes.ButtonFaceKey) as Brush,
-        Foreground = this.TryFindResource(VsBrushes.ButtonTextKey) as Brush
       };
       sendButton.Click += SendButton_Click;
       Grid.SetColumn(sendButton, 1);
@@ -250,7 +244,7 @@ namespace ChatAssistantVSIX
         {
           Debug.WriteLine(x.Message);
         }
-      
+
       }).FireAndForget();
     }
 
@@ -259,10 +253,21 @@ namespace ChatAssistantVSIX
       DocumentView docView = await VS.Documents.GetActiveDocumentViewAsync();
       if (docView?.TextView == null) return;
 
+      bool running = PhenixCodeCoreService.IsServiceRunning;
+
       await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-      // Safe cast to IWpfTextView — DocumentView.TextView is usually an IWpfTextView in editor scenarios
-      IWpfTextView wpfView = docView.TextView as IWpfTextView;
+      if (!running)
+      {
+        var pane = await PhenixCodeCoreService.GetPaneAsync();
+        if (pane != null)
+        {
+          await pane.WriteLineAsync("[WARN] Service not running. Start the service from PhenixCode Settings dialog.");
+        }
+        return;
+      }
+
+      IWpfTextView wpfView = docView.TextView;
       if (wpfView == null)
       {
         Debug.WriteLine("Active document view is not an IWpfTextView. Cannot show adornment.");
@@ -272,47 +277,31 @@ namespace ChatAssistantVSIX
       ITextView textView = wpfView; // still usable as ITextView
       ITextSnapshot snapshot = textView.TextSnapshot;
       var caretPos = textView.Caret.Position.BufferPosition;
-      int currentLineNumber = caretPos.GetContainingLine().LineNumber;
-      if (currentLineNumber == 0) return; // No line above
-      ITextSnapshotLine aboveLine = snapshot.GetLineFromLineNumber(currentLineNumber - 1);
-      string aboveLineText = aboveLine.GetText().TrimEnd();
-      if (string.IsNullOrWhiteSpace(aboveLineText))
+
+      // 1. Get Prefix (up to 3000 chars)
+      int startPos = Math.Max(0, caretPos.Position - 3000);
+      string fullPrefix = snapshot.GetText(startPos, caretPos.Position - startPos);
+
+      // 2. Get Suffix (up to 1500 chars) - starts IMMEDIATELY at cursor
+      int endPos = Math.Min(snapshot.Length, caretPos.Position + 1500);
+      string fullSuffix = snapshot.GetText(caretPos.Position, endPos - caretPos.Position);
+
+      var adornmentLayer = wpfView.GetAdornmentLayer("MyGhostText");
+      var manager = wpfView.Properties.GetOrCreateSingletonProperty(
+                        typeof(GhostAdornmentManager),
+                        () => new GhostAdornmentManager(wpfView, adornmentLayer));
+      manager.ShowProcessing();
+
+      try
       {
-        // Trying another line above.
-        if (0 <= currentLineNumber - 2)
-        {
-          aboveLine = snapshot.GetLineFromLineNumber(currentLineNumber - 2);
-          aboveLineText = aboveLine.GetText().TrimEnd();
-        }
-      }
-      if (!string.IsNullOrWhiteSpace(aboveLineText))
+        // 3. Request
+        var completion = await PhenixCodeCoreService.FillInTheMiddleAsync(fullPrefix, fullSuffix);
+        manager.Show(completion);
+      } 
+      catch(Exception ex)
       {
-
-        // MOCK TEXT TO INSERT
-        var text = "int x = 7; // new code inserted after '" + aboveLineText + "'";
-        var fullText = OpenTag + text + CloseTag;
-
-        // TODO: show visual adornment
-
-        // Create/get adornment manager and show ghost text
-        var adornmentLayer = wpfView.GetAdornmentLayer("MyGhostText");
-        var manager = wpfView.Properties.GetOrCreateSingletonProperty(
-                          typeof(GhostAdornmentManager),
-                          () => new GhostAdornmentManager(wpfView, adornmentLayer));
-        manager.Show(fullText);
-
-
-        // MOCK INSERTION
-        //var buf = textView.TextBuffer;
-        //var snap = buf.Insert(caretPos, fullText);
-        //var span = new SnapshotSpan(snap, caretPos.Position, fullText.Length);
-        //textView.Selection.Select(span, isReversed: false);
-        //textView.Caret.MoveTo(span.End);
-        //await VS.Commands.ExecuteAsync("Edit.FormatSelection");
-      }
-      else
-      {
-        Debug.WriteLine("Empty lines above. Skipped.");
+        manager.Clear();
+        Debug.WriteLine($"InsertSuggestionAsync: {ex.Message}");
       }
     }
 

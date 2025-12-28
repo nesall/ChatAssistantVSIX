@@ -25,13 +25,15 @@ namespace ChatAssistantVSIX.Utils.Adornment
       layer_ = layer;
       view_.LayoutChanged += OnLayoutChanged;
       view_.Closed += (_, _) => Dispose();
-
-      // Hook per-view key events (only active when this text view has focus)
-      //view_.VisualElement.PreviewKeyDown += OnPreviewKeyDown;
       view_.Caret.PositionChanged += OnCaretPositionChanged;
     }
 
-    public void Show(string text)
+    public void ShowProcessing()
+    {
+      Show("Processing...", false);
+    }
+
+    public void Show(string text, bool showButtons = true)
     {
       ThreadHelper.ThrowIfNotOnUIThread();
       Clear();
@@ -42,6 +44,14 @@ namespace ChatAssistantVSIX.Utils.Adornment
       adornment_ = new GhostAdornment(text);
       adornment_.AcceptClicked += Accept;
       adornment_.RejectClicked += Clear;
+
+      if (!showButtons)
+      {
+        adornment_.AcceptButton.IsEnabled = false;
+        adornment_.RejectButton.IsEnabled = false;
+        adornment_.AcceptButton.Visibility = System.Windows.Visibility.Hidden;
+        adornment_.RejectButton.Visibility = System.Windows.Visibility.Hidden;
+      }
 
       PositionAdornment();
     }
@@ -78,24 +88,6 @@ namespace ChatAssistantVSIX.Utils.Adornment
     private void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
         => PositionAdornment();
 
-    // WPF key handler wired to the view's VisualElement. Uses System.Windows.Input.KeyEventArgs.
-    //private void OnPreviewKeyDown(object sender, KeyEventArgs e)
-    //{
-    //  Debug.WriteLine($"OnPreviewKeyDown {e.Key}");
-    //  if (adornment_ == null) return;
-    //  ThreadHelper.ThrowIfNotOnUIThread();
-    //  if (e.Key == Key.NumPad1 && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
-    //  {
-    //    Accept();
-    //    e.Handled = true;
-    //  }
-    //  else if (e.Key == Key.Escape)
-    //  {
-    //    Clear();
-    //    e.Handled = true;
-    //  }
-    //}
-
     private void OnCaretPositionChanged(object sender, CaretPositionChangedEventArgs e)
     {
       if (adornment_ == null) return;
@@ -123,7 +115,6 @@ namespace ChatAssistantVSIX.Utils.Adornment
     {
       // Unsubscribe event handlers
       view_.LayoutChanged -= OnLayoutChanged;
-      //view_.VisualElement.PreviewKeyDown -= OnPreviewKeyDown;
       Clear();
     }
     private void FormatInsertedText(ITextSnapshot snap, SnapshotPoint insertionPoint, int insertedLength)

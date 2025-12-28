@@ -1,4 +1,6 @@
-﻿using Microsoft.VisualStudio.Threading;
+﻿using ChatAssistantVSIX.Utils;
+using Microsoft.VisualStudio.PlatformUI;
+using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
@@ -8,13 +10,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 
 namespace ChatAssistantVSIX.Dialogs
 {
-  public partial class SettingsDialog : Window, INotifyPropertyChanged
+  public partial class SettingsDialog : DialogWindow, INotifyPropertyChanged
   {
     public class ProjectItem : INotifyPropertyChanged
     {
@@ -56,8 +57,9 @@ namespace ChatAssistantVSIX.Dialogs
     public List<string> GenerationChoices { get; set; } = new();
 
     public string ServiceMessage { get; set; }
-    public bool HasOpenSolution { get => !string.IsNullOrEmpty(ChatAssistantVSIXPackage.SolutionSettingsPath); }
+    public bool HasOpenSolution { get => !string.IsNullOrEmpty(PhenixCodeCoreService.SolutionSettingsPath); }
     public string ServiceStartStopButtonText { get; private set; }
+    public bool ServiceButtonEnabled { get; private set; } = true;
 
     public SettingsDialog()
     {
@@ -69,7 +71,7 @@ namespace ChatAssistantVSIX.Dialogs
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
         await LoadProjectsAsync();
       });
-      UpdateServiceButtonText();
+      UpdateServiceButton(null);
     }
 
     public string SelectedEmbeddingApi
@@ -87,42 +89,17 @@ namespace ChatAssistantVSIX.Dialogs
     public bool IsEmbeddingCustom => SelectedEmbeddingApi == "custom";
     public bool IsGenerationCustom => SelectedGenerationApi == "custom";
 
-    public static async Task ShutdownServiceAsync()
-    {
-      int port = 0;
-      int pid = 0;
-      try
-      {
-        var info = JObject.Parse(File.ReadAllText(ChatAssistantVSIXPackage.InfoFilePath));
-        port = info["port"]?.Value<int>() ?? 0;
-        pid = info["pid"]?.Value<int>() ?? 0;
-        if (0 < port)
-        {
-          using (var client = new System.Net.Http.HttpClient())
-          {
-            Debug.WriteLine($"Posting /api/shutdown for port {port} and pid {pid}");
-            var res = await client.PostAsync(
-                $"http://localhost:{port}/api/shutdown",
-                new System.Net.Http.StringContent("{}", Encoding.UTF8, "application/json")
-            );
-            Debug.WriteLine($"Posted /api/shutdown with {res.StatusCode} {res}");
-          }
-        }
-      }
-      catch { }
-    }
-
     private static JObject ReadJson()
     {
       try
       {
-        return JObject.Parse(File.ReadAllText(ChatAssistantVSIXPackage.SolutionSettingsPath));
+        return JObject.Parse(File.ReadAllText(PhenixCodeCoreService.SolutionSettingsPath));
       }
       catch
       {
         // Solution not open, so we use global settings file.
       }
-      return JObject.Parse(File.ReadAllText(ChatAssistantVSIXPackage.SettingsPath));
+      return JObject.Parse(File.ReadAllText(PhenixCodeCoreService.SettingsPath));
     }
 
     private void LoadSettings()
@@ -193,15 +170,15 @@ namespace ChatAssistantVSIX.Dialogs
 
       configJson_["source"]["paths"] = new JArray();
       configJson_.Remove("_exec");
-      if (File.Exists(ChatAssistantVSIXPackage.SolutionSettingsPath))
+      if (File.Exists(PhenixCodeCoreService.SolutionSettingsPath))
       {
         configJson_["_exec"] = ExecutablePath;
         SyncProjectsToJObject();
-        File.WriteAllText(ChatAssistantVSIXPackage.SolutionSettingsPath, configJson_.ToString(Formatting.Indented));
+        File.WriteAllText(PhenixCodeCoreService.SolutionSettingsPath, configJson_.ToString(Formatting.Indented));
       }
       else
       {
-        File.WriteAllText(ChatAssistantVSIXPackage.SettingsPath, configJson_.ToString(Formatting.Indented));
+        File.WriteAllText(PhenixCodeCoreService.SettingsPath, configJson_.ToString(Formatting.Indented));
       }
       this.DialogResult = true;
     }
@@ -241,7 +218,7 @@ namespace ChatAssistantVSIX.Dialogs
     {
       ThreadHelper.ThrowIfNotOnUIThread();
 
-      if (!Directory.Exists(ChatAssistantVSIXPackage.SolutionDir)) { ShowServiceMessage("Please open a solution before restarting the service."); return; }
+      if (!HasOpenSolution) { ShowServiceMessage("Please open a solution before restarting the service."); return; }
       if (!File.Exists(ExecutablePath)) { ShowServiceMessage("Executable path is invalid."); return; }
 
       _ = ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
@@ -251,19 +228,20 @@ namespace ChatAssistantVSIX.Dialogs
         {
           ShowServiceMessage("");
 
-          if (ChatAssistantVSIXPackage.IsServiceRunning)
+          if (PhenixCodeCoreService.IsServiceRunning)
           {
+            UpdateServiceButton("Stopping...");
             ShowServiceMessage("Attempting to shutdown the running service...");
-            await ShutdownServiceAsync();
+            await PhenixCodeCoreService.ShutdownServiceAsync();
             ShowServiceMessage("Service stop request posted");
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            while (ChatAssistantVSIXPackage.IsServiceRunning && stopwatch.Elapsed < TimeSpan.FromSeconds(12))
+            var stopwatch = Stopwatch.StartNew();
+            while (PhenixCodeCoreService.IsServiceRunning && stopwatch.Elapsed < TimeSpan.FromSeconds(12))
             {
               await Task.Delay(200);
               ShowServiceMessage($"Waiting for service to stop... ({stopwatch.Elapsed.TotalSeconds:0.0}s)");
             }
 
-            if (ChatAssistantVSIXPackage.IsServiceRunning)
+            if (PhenixCodeCoreService.IsServiceRunning)
             {
               ShowServiceMessage("Service failed to stop within timeout period");
             }
@@ -271,36 +249,25 @@ namespace ChatAssistantVSIX.Dialogs
             {
               ShowServiceMessage("Service stopped successfully");
             }
-            UpdateServiceButtonText();
+            UpdateServiceButton(null);
             return;
           }
 
-          var pane = await VS.Windows.GetOutputWindowPaneAsync(ChatAssistantVSIXPackage.OutputPaneGuid);
+          UpdateServiceButton("Starting...");
+          var pane = await PhenixCodeCoreService.GetPaneAsync();
 
           // Switching to background thread.
           await TaskScheduler.Default;
 
-          ShowServiceMessage("Initializing...");
-          var psi = new ProcessStartInfo
-          {
-            FileName = ExecutablePath,
-            Arguments = $"--no-startup-tests --config \"{ChatAssistantVSIXPackage.SolutionSettingsPath}\" serve --watch --yes --info-file \"{ChatAssistantVSIXPackage.InfoFilePath}\" --port 59241",
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            WorkingDirectory = ChatAssistantVSIXPackage.SolutionDir
-          };
-
-          Process proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
-
-          proc.OutputDataReceived += (s, args) => { if (args.Data != null) { pane.WriteLine($"[OUT] {args.Data}"); } };
-          proc.ErrorDataReceived += (s, args) => { if (args.Data != null) { pane.WriteLine($"[ERR] {args.Data}"); } };
-
           ShowServiceMessage("Starting service process...");
-          if (proc.Start())
+          var proc = PhenixCodeCoreService.StartProcess(ExecutablePath, pane);
+
+          await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+          if (proc != null)
           {
             ShowServiceMessage("Service started successfully.");
+            await pane.ActivateAsync();
+            await pane.WriteLineAsync($"[System] Service started with PID {proc.Id}");
           }
           else
           {
@@ -308,19 +275,12 @@ namespace ChatAssistantVSIX.Dialogs
             return;
           }
 
-          proc.BeginOutputReadLine();
-          proc.BeginErrorReadLine();
-
-          await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-          await pane.ActivateAsync();
-          await pane.WriteLineAsync($"[System] Service started with PID {proc.Id}");
-
-          var stopwatch2 = System.Diagnostics.Stopwatch.StartNew();
-          while (!ChatAssistantVSIXPackage.IsServiceRunning && stopwatch2.Elapsed < TimeSpan.FromSeconds(6))
+          var stopwatch2 = Stopwatch.StartNew();
+          while (!PhenixCodeCoreService.IsServiceRunning && stopwatch2.Elapsed < TimeSpan.FromSeconds(6))
           {
             await Task.Delay(200);
           }
-          UpdateServiceButtonText();
+          UpdateServiceButton(null);
         }
         catch (Exception ex)
         {
@@ -376,15 +336,15 @@ namespace ChatAssistantVSIX.Dialogs
       {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
         var dte = await AsyncServiceProvider.GlobalProvider.GetServiceAsync(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
-        if (File.Exists(ChatAssistantVSIXPackage.SolutionSettingsPath))
+        if (File.Exists(PhenixCodeCoreService.SolutionSettingsPath))
         {
-          Debug.WriteLine("Opening Solution settings file");
-          dte?.ItemOperations.OpenFile(ChatAssistantVSIXPackage.SolutionSettingsPath);
+          Debug.WriteLine("Opening Solution settings file " + PhenixCodeCoreService.SolutionSettingsPath);
+          dte?.ItemOperations.OpenFile(PhenixCodeCoreService.SolutionSettingsPath);
         }
         else
         {
-          Debug.WriteLine("Opening global settings file");
-          dte?.ItemOperations.OpenFile(ChatAssistantVSIXPackage.SettingsPath);
+          Debug.WriteLine("Opening global settings file " + PhenixCodeCoreService.SettingsPath);
+          dte?.ItemOperations.OpenFile(PhenixCodeCoreService.SettingsPath);
         }
       });
     }
@@ -398,10 +358,20 @@ namespace ChatAssistantVSIX.Dialogs
       OnPropertyChanged(nameof(ServiceMessage));
     }
 
-    private void UpdateServiceButtonText()
+    private void UpdateServiceButton(string tempText)
     {
-      ServiceStartStopButtonText = ChatAssistantVSIXPackage.IsServiceRunning ? "Stop service" : "Start service";
+      ServiceButtonEnabled = true;
+      if (!string.IsNullOrEmpty(tempText))
+      {
+        ServiceButtonEnabled = false;
+        ServiceStartStopButtonText = tempText;
+      }
+      else
+      {
+        ServiceStartStopButtonText = PhenixCodeCoreService.IsServiceRunning ? "Stop service" : "Start service";
+      }
       OnPropertyChanged(nameof(ServiceStartStopButtonText));
+      OnPropertyChanged(nameof(ServiceButtonEnabled));
     }
   }
 }
