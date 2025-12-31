@@ -1,29 +1,37 @@
 ﻿using ChatAssistantVSIX.ToolWindows;
 using ChatAssistantVSIX.Utils;
 using ChatAssistantVSIX.Utils.Adornment;
+using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
+using Newtonsoft.Json.Linq;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace ChatAssistantVSIX
 {
   public partial class MyToolWindowControl : UserControl
   {
-    private readonly string testReply = "The increment operator in C++ increases the value of a variable by one. It can be used in two forms: \r\n\r\n1. **Prefix (`++variable`)**: Increments the variable and then returns the new value.\r\n2. **Postfix (`variable++`)**: Returns the current value of the variable and then increments it.\r\n\r\nFor example:\r\n```cpp\r\nint x = 5;\r\nint y = ++x; // y is 6, x is 6\r\nint z = x++; // z is 6, x is 7\r\n```";
+    //private readonly string testReply = "The increment operator in C++ increases the value of a variable by one. It can be used in two forms: \r\n\r\n1. **Prefix (`++variable`)**: Increments the variable and then returns the new value.\r\n2. **Postfix (`variable++`)**: Returns the current value of the variable and then increments it.\r\n\r\nFor example:\r\n```cpp\r\nint x = 5;\r\nint y = ++x; // y is 6, x is 6\r\nint z = x++; // z is 6, x is 7\r\n```";
 
-    const string OpenTag = "/*BEGIN_CODE_SUGGESTION*/\n";
-    const string CloseTag = "\n/*END_CODE_SUGGESTION*/";
+    //const string OpenTag = "/*BEGIN_CODE_SUGGESTION*/\n";
+    //const string CloseTag = "\n/*END_CODE_SUGGESTION*/";
+    const string ThinkingText = "Thinking...";
 
     private ItemsControl messageList;
     private TextBox inputBox;
     private Button sendButton;
+    private CancellationTokenSource completionCts;
+
     public ObservableCollection<ChatMessage> Messages { get; } = new ObservableCollection<ChatMessage>();
     public ToolWindowMessenger ToolWindowMessenger = null;
 
@@ -114,7 +122,7 @@ namespace ChatAssistantVSIX
       factory.SetValue(Border.MarginProperty, new Thickness(0, 0, 0, 12));
       factory.SetValue(Border.PaddingProperty, new Thickness(12));
       factory.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
-      factory.SetValue(Border.BackgroundProperty, new DynamicResourceExtension(VsBrushes.ToolWindowBackgroundKey));
+      //factory.SetValue(Border.3S, new DynamicResourceExtension(VsBrushes.ToolWindowBackgroundKey));
       factory.SetValue(Border.HorizontalAlignmentProperty, HorizontalAlignment.Right);
       var stackPanel = new FrameworkElementFactory(typeof(StackPanel));
       factory.AppendChild(stackPanel);
@@ -142,16 +150,16 @@ namespace ChatAssistantVSIX
     {
       var factory = new FrameworkElementFactory(typeof(Border));
       factory.SetValue(Border.MarginProperty, new Thickness(0, 0, 0, 12));
-      factory.SetValue(Border.PaddingProperty, new Thickness(12));
-      factory.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
-      factory.SetValue(Border.BackgroundProperty, new DynamicResourceExtension(VsBrushes.ToolWindowBackgroundKey));
+      factory.SetValue(Border.PaddingProperty, new Thickness(0));
+      //factory.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
+      //factory.SetValue(Border.BackgroundProperty, new DynamicResourceExtension(VsBrushes.ToolWindowBackgroundKey));
 
       var stackPanel = new FrameworkElementFactory(typeof(StackPanel));
       factory.AppendChild(stackPanel);
 
       var innerBorder = new FrameworkElementFactory(typeof(Border));
       innerBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(8));
-      innerBorder.SetValue(Border.PaddingProperty, new Thickness(8));
+      innerBorder.SetValue(Border.PaddingProperty, new Thickness(4));
       innerBorder.SetValue(Border.BackgroundProperty, new DynamicResourceExtension(VsBrushes.AccentMediumKey));
       stackPanel.AppendChild(innerBorder);
 
@@ -163,6 +171,7 @@ namespace ChatAssistantVSIX
       viewerFactory.SetValue(FlowDocumentScrollViewer.IsHitTestVisibleProperty, true);
       viewerFactory.SetValue(FlowDocumentScrollViewer.MarginProperty, new Thickness(0));
       viewerFactory.SetValue(FlowDocumentScrollViewer.PaddingProperty, new Thickness(0));
+      viewerFactory.SetValue(FlowDocumentScrollViewer.HorizontalAlignmentProperty, HorizontalAlignment.Left);
 
       // Bind FlowDocument dynamically via Loaded event
       var fontSize = this.FontSize;
@@ -177,6 +186,7 @@ namespace ChatAssistantVSIX
               if (contentProp?.GetValue(ctx) is string markdown)
               {
                 fds.Document = MarkdownFlowDocument.Convert(markdown, fontFamily, fontSize);
+                fds.Document.TextAlignment = TextAlignment.Left;
               }
             }
           })
@@ -202,15 +212,52 @@ namespace ChatAssistantVSIX
     }
     private void SendMessage()
     {
+      ThreadHelper.ThrowIfNotOnUIThread();
+
       var text = inputBox.Text.Trim();
       if (string.IsNullOrEmpty(text)) return;
+
+      if (!PhenixCodeCoreService.IsServiceRunning)
+      {
+        // Show notification to user
+        VS.MessageBox.Show(
+          "Service Not Running",
+          "The PhenixCode service is not running. Please start the service from Settings to use this feature.",
+          OLEMSGICON.OLEMSGICON_WARNING, OLEMSGBUTTON.OLEMSGBUTTON_OK
+        );
+        return;
+      }
 
       Messages.Add(new ChatMessage { Role = "user", Content = text });
       inputBox.Clear();
 
-      // TODO: Send to your chat backend
-      // Messages.Add(new ChatMessage { Role = "Assistant", Content = response });
-      Messages.Add(new ChatMessage { Role = "assistant", Content = testReply });
+      ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+      {
+        var response = await PhenixCodeCoreService.ChatCompletionAsync(
+          null,
+          Messages
+          );
+        Debug.WriteLine(response);
+        UpdateAssistantMessage(response);
+      }).FireAndForget();
+      Messages.Add(new ChatMessage { Role = "assistant", Content = ThinkingText });
+    }
+
+    private void UpdateAssistantMessage(string text)
+    {
+      if (Messages.Count == 0 || Messages.Last().Role != "assistant")
+        return;
+
+      var lastMessage = Messages.Last();
+      if (lastMessage.Content == ThinkingText)
+        lastMessage.Content = "";
+
+      lastMessage.Content += text;
+
+      // Force UI update
+      var index = Messages.IndexOf(lastMessage);
+      Messages.RemoveAt(index);
+      Messages.Insert(index, lastMessage);
     }
 
     private void OnMessageReceived(object sender, string e)
@@ -274,17 +321,23 @@ namespace ChatAssistantVSIX
         return;
       }
 
+      completionCts?.Cancel();
+      completionCts = new CancellationTokenSource();
+      var cancellationToken = completionCts.Token;
+
       ITextView textView = wpfView; // still usable as ITextView
       ITextSnapshot snapshot = textView.TextSnapshot;
       var caretPos = textView.Caret.Position.BufferPosition;
 
-      // 1. Get Prefix (up to 3000 chars)
+      // 1. Get Prefix
       int startPos = Math.Max(0, caretPos.Position - 3000);
       string fullPrefix = snapshot.GetText(startPos, caretPos.Position - startPos);
 
-      // 2. Get Suffix (up to 1500 chars) - starts IMMEDIATELY at cursor
+      // 2. Get Suffix - starts IMMEDIATELY at cursor
       int endPos = Math.Min(snapshot.Length, caretPos.Position + 1500);
       string fullSuffix = snapshot.GetText(caretPos.Position, endPos - caretPos.Position);
+
+      string fileName = docView.Document.FilePath;
 
       var adornmentLayer = wpfView.GetAdornmentLayer("MyGhostText");
       var manager = wpfView.Properties.GetOrCreateSingletonProperty(
@@ -295,10 +348,22 @@ namespace ChatAssistantVSIX
       try
       {
         // 3. Request
-        var completion = await PhenixCodeCoreService.FillInTheMiddleAsync(fullPrefix, fullSuffix);
-        manager.Show(completion);
-      } 
-      catch(Exception ex)
+        var completion = await PhenixCodeCoreService.FillInTheMiddleAsync(fullPrefix, fullSuffix, fileName, cancellationToken);
+        if (!cancellationToken.IsCancellationRequested)
+        {
+          manager.Show(completion);
+        }
+        else
+        {
+          manager.Clear();
+        }
+      }
+      catch (OperationCanceledException)
+      {
+        manager.Clear();
+        // Expected during rapid typing
+      }
+      catch (Exception ex)
       {
         manager.Clear();
         Debug.WriteLine($"InsertSuggestionAsync: {ex.Message}");

@@ -1,12 +1,18 @@
 ﻿using ChatAssistantVSIX.Dialogs;
+using Markdig.Helpers;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ChatAssistantVSIX.Utils
 {
@@ -21,6 +27,11 @@ namespace ChatAssistantVSIX.Utils
     public static string InfoFilePath { get; private set; }
     private static Guid OutputPaneGuid { get; set; }
 
+    public class Attachment
+    {
+      public string Filename { get; set; }
+      public string Content { get; set; }
+    }
 
     public static void InitOnSolutionReady(Solution solution)
     {
@@ -177,7 +188,7 @@ namespace ChatAssistantVSIX.Utils
       return proc;
     }
 
-    public static async Task<string> FillInTheMiddleAsync(string prefix, string suffix)
+    public static async Task<string> FillInTheMiddleAsync(string prefix, string suffix, string fileName, CancellationToken cancellationToken = default)
     {
       /*
         curl -X POST "http://localhost:8590/api/fim" \
@@ -187,6 +198,7 @@ namespace ChatAssistantVSIX.Utils
             "suffix": "+\"!\"; }",
             "temperature": 0.0,
             "max_tokens": 64,
+            "filename": "inference.cpp",
             "targetapi": "mistral-codestral"
           }'
       */
@@ -230,6 +242,7 @@ namespace ChatAssistantVSIX.Utils
             suffix = suffix,
             temperature = 0.0,
             max_tokens = 64,
+            filename = fileName,
             targetapi = currentApi
           };
 
@@ -238,7 +251,8 @@ namespace ChatAssistantVSIX.Utils
 
           var response = await client.PostAsync(
               $"http://localhost:{port}/api/fim",
-              content
+              content,
+              cancellationToken
           );
 
           if (response.IsSuccessStatusCode)
@@ -256,6 +270,214 @@ namespace ChatAssistantVSIX.Utils
       catch (Exception ex)
       {
         Debug.WriteLine($"FillInTheMiddleAsync error: {ex.Message}");
+      }
+
+      return string.Empty;
+    }
+
+    private static async Task<string> ProcessCompletionAsync(
+      TextReader reader,
+      Action<string> onTokenReceived,
+      CancellationToken cancellationToken)
+    {
+      var sb = new StringBuilder();
+
+      string line;
+      while (!cancellationToken.IsCancellationRequested && (line = await reader.ReadLineAsync()) != null)
+      {
+        if (line.Length == 0 || !line.StartsWith("data:"))
+          continue;
+        
+        var payload = line.Substring(5).Trim();
+
+        if (payload.SequenceEqual("[DONE]"))
+          break;
+
+        var obj = JObject.Parse(payload);
+        string chunk = obj["content"]?.ToString();
+
+        if (string.IsNullOrEmpty(chunk))
+          continue;
+
+        if (chunk.StartsWith("[meta]"))
+          continue;
+
+        sb.Append(chunk);
+
+        try
+        {
+          onTokenReceived?.Invoke(payload.ToString());
+        }
+        catch { }
+      }
+      return sb.ToString();
+    }
+
+    public static async Task<string> ChatCompletionAsync(
+        Action<string> onTokenReceived,
+        Collection<ChatMessage> messages,
+        List<string> sourceIds = null,
+        List<Attachment> attachments = null,
+        double temperature = 0.2,
+        int maxTokens = 800,
+        string targetApi = null,
+        double ctxRatio = 0.5,
+        bool attachedOnly = false,
+        CancellationToken cancellationToken = default)
+    {
+      if (string.IsNullOrEmpty(InfoFilePath) || !File.Exists(InfoFilePath))
+      {
+        Debug.WriteLine("ChatCompletionAsync: InfoFilePath is invalid");
+        return string.Empty;
+      }
+
+      if (string.IsNullOrEmpty(SolutionSettingsPath) || !File.Exists(SolutionSettingsPath))
+      {
+        Debug.WriteLine("ChatCompletionAsync: SolutionSettingsPath is invalid");
+        return string.Empty;
+      }
+
+      try
+      {
+        var info = JObject.Parse(File.ReadAllText(InfoFilePath));
+        int port = info["port"]?.Value<int>() ?? 0;
+
+        if (port <= 0)
+        {
+          Debug.WriteLine("ChatCompletionAsync: port is invalid");
+          return string.Empty;
+        }
+
+        JObject settings = JObject.Parse(File.ReadAllText(SolutionSettingsPath));
+        var currentApi = targetApi ?? settings["generation"]?["current_api"]?.ToString();
+        if (string.IsNullOrEmpty(currentApi))
+        {
+          Debug.WriteLine("ChatCompletionAsync: currentApi is invalid");
+          return string.Empty;
+        }
+
+        using (var client = new HttpClient())
+        {
+          var requestData = new
+          {
+            messages = messages.Select(m => new { role = m.Role, content = m.Content }),
+            sourceids = sourceIds ?? new List<string>(),
+            attachments = attachments ?? new List<Attachment>(),
+            temperature = temperature,
+            max_tokens = maxTokens,
+            targetapi = currentApi,
+            ctxratio = ctxRatio,
+            attachedonly = attachedOnly
+          };
+
+          var jsonContent = JsonConvert.SerializeObject(requestData);
+          var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+          var response = await client.PostAsync(
+              $"http://localhost:{port}/api/chat",
+              content,
+              cancellationToken
+          );
+
+          if (response.IsSuccessStatusCode)
+          {
+            var text = await response.Content.ReadAsStringAsync();
+            using var reader = new StringReader(text);
+            return await ProcessCompletionAsync(reader, onTokenReceived, cancellationToken);
+          }
+          else
+          {
+            Debug.WriteLine($"ChatCompletionAsync: status {response.StatusCode}, {response.Content}");
+          }
+        }
+      }
+      catch (Exception ex)
+      {
+        Debug.WriteLine($"ChatCompletionAsync error: {ex.Message}");
+      }
+
+      return string.Empty;
+    }
+
+    public static async Task<string> ChatCompletionStreamAsync(
+          Action<string> onTokenReceived,
+          Collection<ChatMessage> messages,
+          List<string> sourceIds = null,
+          List<Attachment> attachments = null,
+          double temperature = 0.2,
+          int maxTokens = 800,
+          string targetApi = null,
+          double ctxRatio = 0.5,
+          bool attachedOnly = false,
+          CancellationToken cancellationToken = default)
+    {
+      if (string.IsNullOrEmpty(InfoFilePath) || !File.Exists(InfoFilePath))
+      {
+        Debug.WriteLine("ChatCompletionStreamAsync: InfoFilePath is invalid");
+        return string.Empty;
+      }
+
+      if (string.IsNullOrEmpty(SolutionSettingsPath) || !File.Exists(SolutionSettingsPath))
+      {
+        Debug.WriteLine("ChatCompletionStreamAsync: SolutionSettingsPath is invalid");
+        return string.Empty;
+      }
+
+      try
+      {
+        var info = JObject.Parse(File.ReadAllText(InfoFilePath));
+        int port = info["port"]?.Value<int>() ?? 0;
+
+        if (port <= 0)
+        {
+          Debug.WriteLine("ChatCompletionStreamAsync: port is invalid");
+          return string.Empty;
+        }
+
+        JObject settings = JObject.Parse(File.ReadAllText(SolutionSettingsPath));
+        var currentApi = targetApi ?? settings["generation"]?["current_api"]?.ToString();
+        if (string.IsNullOrEmpty(currentApi))
+        {
+          Debug.WriteLine("ChatCompletionStreamAsync: currentApi is invalid");
+          return string.Empty;
+        }
+
+        using (var client = new System.Net.Http.HttpClient())
+        {
+          var requestData = new
+          {
+            messages = messages.Select(m => new { role = m.Role, content = m.Content }),
+            sourceids = sourceIds ?? new List<string>(),
+            attachments = attachments ?? new List<Attachment>(),
+            temperature = temperature,
+            max_tokens = maxTokens,
+            targetapi = currentApi,
+            ctxratio = ctxRatio,
+            attachedonly = attachedOnly
+          };
+
+          var jsonContent = JsonConvert.SerializeObject(requestData);
+
+          using var request = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:{port}/api/chat")
+          {
+            Content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
+          };
+
+          using var response = await client.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken
+          );
+
+          response.EnsureSuccessStatusCode();
+          using var stream = await response.Content.ReadAsStreamAsync();
+          using var reader = new StreamReader(stream);
+          await ProcessCompletionAsync(reader, onTokenReceived, cancellationToken);
+        }
+      }
+      catch (Exception ex)
+      {
+        Debug.WriteLine($"ChatCompletionStreamAsync error: {ex.Message}");
       }
 
       return string.Empty;

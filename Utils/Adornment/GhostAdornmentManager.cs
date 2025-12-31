@@ -30,6 +30,7 @@ namespace ChatAssistantVSIX.Utils.Adornment
 
     public void ShowProcessing()
     {
+      ThreadHelper.ThrowIfNotOnUIThread();
       Show("Processing...", false);
     }
 
@@ -51,6 +52,8 @@ namespace ChatAssistantVSIX.Utils.Adornment
         adornment_.RejectButton.IsEnabled = false;
         adornment_.AcceptButton.Visibility = System.Windows.Visibility.Hidden;
         adornment_.RejectButton.Visibility = System.Windows.Visibility.Hidden;
+        adornment_.AcceptButton.Width = 0;
+        adornment_.RejectButton.Width = 0;
       }
 
       PositionAdornment();
