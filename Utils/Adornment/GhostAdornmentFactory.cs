@@ -29,7 +29,7 @@ namespace ChatAssistantVSIX.Utils.Adornment
       }
       catch (ArgumentOutOfRangeException ex)
       {
-        Debug.WriteLine($"Adornment layer 'MyGhostText' not found: {ex.Message}");
+        Diag.OutputMsg($"Adornment layer 'MyGhostText' not found: {ex.Message}");
       }
     }
   }

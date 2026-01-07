@@ -1,14 +1,6 @@
-﻿using ChatAssistantVSIX.ToolWindows;
-using Microsoft.VisualStudio.Text;
+﻿using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Controls;
-using System.Diagnostics;
-using System.Windows.Input;
 
 namespace ChatAssistantVSIX.Utils.Adornment
 {
@@ -38,6 +30,11 @@ namespace ChatAssistantVSIX.Utils.Adornment
     {
       ThreadHelper.ThrowIfNotOnUIThread();
       Clear();
+
+      if (string.IsNullOrEmpty(text))
+      {
+        return;
+      }
 
       var line = view_.Caret.Position.BufferPosition.GetContainingLine();
       anchor_ = view_.TextSnapshot.CreateTrackingPoint(line.End, PointTrackingMode.Positive);
@@ -79,7 +76,7 @@ namespace ChatAssistantVSIX.Utils.Adornment
       var caretX = line.GetCharacterBounds(snap).Right;
 
       // vertical  = just under the line
-      var y = line.Top + 0 * view_.ZoomLevel / 100.0; // 2 px, zoom-aware
+      var y = line.Top + (0 * view_.ZoomLevel / 100.0) - 1;
 
       Canvas.SetLeft(adornment_, caretX);
       Canvas.SetTop(adornment_, y);
@@ -123,7 +120,6 @@ namespace ChatAssistantVSIX.Utils.Adornment
     private void FormatInsertedText(ITextSnapshot snap, SnapshotPoint insertionPoint, int insertedLength)
     {
       // Select the inserted text
-      //var snapshot = view_.TextSnapshot;
       var insertedSpan = new SnapshotSpan(snap, insertionPoint, insertedLength);
       view_.Selection.Select(insertedSpan, isReversed: false);
       view_.Caret.MoveTo(insertedSpan.End);

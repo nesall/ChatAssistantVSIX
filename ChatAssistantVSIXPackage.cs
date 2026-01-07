@@ -15,7 +15,6 @@ namespace ChatAssistantVSIX
   [ProvideMenuResource("Menus.ctmenu", 1)]
   [Guid(PackageGuids.ChatAssistantVSIXString)]
   [ProvideService(typeof(ToolWindowMessenger), IsAsyncQueryable = true)]
-  //[ProvideOptionPage(typeof(IndexerOptionsPage), "PhenixCode Assistant", "General", 0, 0, true)]
   public sealed class ChatAssistantVSIXPackage : ToolkitPackage
   {
     protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
@@ -49,7 +48,6 @@ namespace ChatAssistantVSIX
     {
       if (disposing)
       {
-        // Unsubscribe to prevent memory leaks
         VS.Events.SolutionEvents.OnAfterCloseSolution -= OnAfterCloseSolution;
 
         // Final safety check: Kill if VS is closing entirely

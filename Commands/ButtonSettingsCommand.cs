@@ -13,8 +13,8 @@ namespace ChatAssistantVSIX
 
       var dlg = new SettingsDialog();
 
-      //var hwnd = Process.GetCurrentProcess().MainWindowHandle;
-      //new WindowInteropHelper(dlg) { Owner = hwnd };
+      var hwnd = Process.GetCurrentProcess().MainWindowHandle;
+      new WindowInteropHelper(dlg) { Owner = hwnd };
 
       dlg.ShowDialog();
     }

@@ -199,11 +199,13 @@ namespace ChatAssistantVSIX
 
     private void SendButton_Click(object sender, RoutedEventArgs e)
     {
+      ThreadHelper.ThrowIfNotOnUIThread();
       SendMessage();
     }
 
     private void InputBox_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+      ThreadHelper.ThrowIfNotOnUIThread();
       if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
       {
         e.Handled = true;
@@ -289,7 +291,7 @@ namespace ChatAssistantVSIX
         }
         catch (Exception x)
         {
-          Debug.WriteLine(x.Message);
+          Diag.OutputMsg(x.Message);
         }
 
       }).FireAndForget();
@@ -366,7 +368,7 @@ namespace ChatAssistantVSIX
       catch (Exception ex)
       {
         manager.Clear();
-        Debug.WriteLine($"InsertSuggestionAsync: {ex.Message}");
+        Diag.OutputMsg($"InsertSuggestionAsync: {ex.Message}");
       }
     }
 

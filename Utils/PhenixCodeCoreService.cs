@@ -24,7 +24,7 @@ namespace ChatAssistantVSIX.Utils
     public static string SettingsPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PhenixCode", "settings.json");
     public static string SolutionSettingsPath { get; private set; }
     public static string SolutionDir { get; private set; }
-    public static string InfoFilePath { get; private set; }
+    private static string InfoFilePath { get; set; }
     private static Guid OutputPaneGuid { get; set; }
 
     public class Attachment
@@ -36,7 +36,7 @@ namespace ChatAssistantVSIX.Utils
     public static void InitOnSolutionReady(Solution solution)
     {
       Debug.Assert(solution != null);
-      Debug.WriteLine($"InitOnSolutionReady solution.Name {solution.Name}, solution.FullPath {solution.FullPath}");
+      Diag.OutputMsg($"InitOnSolutionReady solution.Name {solution.Name}, solution.FullPath {solution.FullPath}");
       if (solution.FullPath != null)
       {
         string solutionDir = Path.GetDirectoryName(solution.FullPath);
@@ -47,11 +47,14 @@ namespace ChatAssistantVSIX.Utils
         if (!Directory.Exists(workDir))
         {
           Directory.CreateDirectory(workDir);
-          File.Copy(SettingsPath, SolutionSettingsPath, true);
+        }
+        if (!File.Exists(SolutionSettingsPath))
+        {
+          SaveToSolutionSettings(File.ReadAllText(SettingsPath));
         }
         if (IsServiceRunning)
         {
-          Debug.WriteLine("InitOnSolutionReady: Service already running. Shutting down...");
+          Diag.OutputMsg("InitOnSolutionReady: Service already running. Shutting down...");
           ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
           {
             await ShutdownServiceAsync();
@@ -76,7 +79,7 @@ namespace ChatAssistantVSIX.Utils
             }
             catch (Exception ex)
             {
-              Debug.WriteLine($"{ex.Message}");
+              Diag.OutputMsg($"{ex.Message}");
             }
           }).FireAndForget();
         }
@@ -131,6 +134,12 @@ namespace ChatAssistantVSIX.Utils
       return false;
     }
 
+    public static void SaveToSolutionSettings(string config)
+    {
+      string text = config.Replace("$(SolutionDir)", SolutionDir);
+      File.WriteAllText(PhenixCodeCoreService.SolutionSettingsPath, text);
+    }
+
     public static async Task ShutdownServiceAsync()
     {
       int port = 0;
@@ -144,12 +153,12 @@ namespace ChatAssistantVSIX.Utils
         {
           using (var client = new System.Net.Http.HttpClient())
           {
-            Debug.WriteLine($"Posting /api/shutdown for port {port} and pid {pid}");
+            Diag.OutputMsg($"Posting /api/shutdown for port {port} and pid {pid}");
             var res = await client.PostAsync(
                 $"http://localhost:{port}/api/shutdown",
                 new System.Net.Http.StringContent("{}", Encoding.UTF8, "application/json")
             );
-            Debug.WriteLine($"Posted /api/shutdown with {res.StatusCode} {res}");
+            Diag.OutputMsg($"Posted /api/shutdown with {res.StatusCode} {res}");
           }
         }
       }
@@ -205,13 +214,13 @@ namespace ChatAssistantVSIX.Utils
 
       if (string.IsNullOrEmpty(InfoFilePath) || !File.Exists(InfoFilePath))
       {
-        Debug.WriteLine("FillInTheMiddleAsync: InfoFilePath is invalid");
+        Diag.OutputMsg("FillInTheMiddleAsync: InfoFilePath is invalid");
         return string.Empty;
       }
 
       if (string.IsNullOrEmpty(SolutionSettingsPath) || !File.Exists(SolutionSettingsPath))
       {
-        Debug.WriteLine("FillInTheMiddleAsync: SolutionSettingsPath is invalid");
+        Diag.OutputMsg("FillInTheMiddleAsync: SolutionSettingsPath is invalid");
         return string.Empty;
       }
 
@@ -222,7 +231,7 @@ namespace ChatAssistantVSIX.Utils
 
         if (port <= 0)
         {
-          Debug.WriteLine("FillInTheMiddleAsync: port is invalid");
+          Diag.OutputMsg("FillInTheMiddleAsync: port is invalid");
           return string.Empty;
         }
 
@@ -230,7 +239,7 @@ namespace ChatAssistantVSIX.Utils
         var currentApi = settings["generation"]?["current_api"]?.ToString();
         if (string.IsNullOrEmpty(currentApi))
         {
-          Debug.WriteLine("FillInTheMiddleAsync: currentApi is invalid");
+          Diag.OutputMsg("FillInTheMiddleAsync: currentApi is invalid");
           return string.Empty;
         }
 
@@ -263,13 +272,13 @@ namespace ChatAssistantVSIX.Utils
           }
           else
           {
-            Debug.WriteLine($"FillInTheMiddleAsync: status {response.StatusCode}, {response.Content}");
+            Diag.OutputMsg($"FillInTheMiddleAsync: status {response.StatusCode}, {response.Content}");
           }
         }
       }
       catch (Exception ex)
       {
-        Debug.WriteLine($"FillInTheMiddleAsync error: {ex.Message}");
+        Diag.OutputMsg($"FillInTheMiddleAsync error: {ex.Message}");
       }
 
       return string.Empty;
@@ -327,13 +336,13 @@ namespace ChatAssistantVSIX.Utils
     {
       if (string.IsNullOrEmpty(InfoFilePath) || !File.Exists(InfoFilePath))
       {
-        Debug.WriteLine("ChatCompletionAsync: InfoFilePath is invalid");
+        Diag.OutputMsg("ChatCompletionAsync: InfoFilePath is invalid");
         return string.Empty;
       }
 
       if (string.IsNullOrEmpty(SolutionSettingsPath) || !File.Exists(SolutionSettingsPath))
       {
-        Debug.WriteLine("ChatCompletionAsync: SolutionSettingsPath is invalid");
+        Diag.OutputMsg("ChatCompletionAsync: SolutionSettingsPath is invalid");
         return string.Empty;
       }
 
@@ -344,7 +353,7 @@ namespace ChatAssistantVSIX.Utils
 
         if (port <= 0)
         {
-          Debug.WriteLine("ChatCompletionAsync: port is invalid");
+          Diag.OutputMsg("ChatCompletionAsync: port is invalid");
           return string.Empty;
         }
 
@@ -352,7 +361,7 @@ namespace ChatAssistantVSIX.Utils
         var currentApi = targetApi ?? settings["generation"]?["current_api"]?.ToString();
         if (string.IsNullOrEmpty(currentApi))
         {
-          Debug.WriteLine("ChatCompletionAsync: currentApi is invalid");
+          Diag.OutputMsg("ChatCompletionAsync: currentApi is invalid");
           return string.Empty;
         }
 
@@ -387,13 +396,13 @@ namespace ChatAssistantVSIX.Utils
           }
           else
           {
-            Debug.WriteLine($"ChatCompletionAsync: status {response.StatusCode}, {response.Content}");
+            Diag.OutputMsg($"ChatCompletionAsync: status {response.StatusCode}, {response.Content}");
           }
         }
       }
       catch (Exception ex)
       {
-        Debug.WriteLine($"ChatCompletionAsync error: {ex.Message}");
+        Diag.OutputMsg($"ChatCompletionAsync error: {ex.Message}");
       }
 
       return string.Empty;
@@ -413,13 +422,13 @@ namespace ChatAssistantVSIX.Utils
     {
       if (string.IsNullOrEmpty(InfoFilePath) || !File.Exists(InfoFilePath))
       {
-        Debug.WriteLine("ChatCompletionStreamAsync: InfoFilePath is invalid");
+        Diag.OutputMsg("ChatCompletionStreamAsync: InfoFilePath is invalid");
         return string.Empty;
       }
 
       if (string.IsNullOrEmpty(SolutionSettingsPath) || !File.Exists(SolutionSettingsPath))
       {
-        Debug.WriteLine("ChatCompletionStreamAsync: SolutionSettingsPath is invalid");
+        Diag.OutputMsg("ChatCompletionStreamAsync: SolutionSettingsPath is invalid");
         return string.Empty;
       }
 
@@ -430,7 +439,7 @@ namespace ChatAssistantVSIX.Utils
 
         if (port <= 0)
         {
-          Debug.WriteLine("ChatCompletionStreamAsync: port is invalid");
+          Diag.OutputMsg("ChatCompletionStreamAsync: port is invalid");
           return string.Empty;
         }
 
@@ -438,7 +447,7 @@ namespace ChatAssistantVSIX.Utils
         var currentApi = targetApi ?? settings["generation"]?["current_api"]?.ToString();
         if (string.IsNullOrEmpty(currentApi))
         {
-          Debug.WriteLine("ChatCompletionStreamAsync: currentApi is invalid");
+          Diag.OutputMsg("ChatCompletionStreamAsync: currentApi is invalid");
           return string.Empty;
         }
 
@@ -477,7 +486,7 @@ namespace ChatAssistantVSIX.Utils
       }
       catch (Exception ex)
       {
-        Debug.WriteLine($"ChatCompletionStreamAsync error: {ex.Message}");
+        Diag.OutputMsg($"ChatCompletionStreamAsync error: {ex.Message}");
       }
 
       return string.Empty;
