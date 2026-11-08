@@ -1,14 +1,14 @@
-﻿using ChatAssistantVSIX.ToolWindows;
+﻿using ChatAssistantVSIX.Utils;
 
 namespace ChatAssistantVSIX
 {
   [Command(PackageIds.ButtonInsertCommand)]
-  internal sealed class ButtonInsertCommand : MessengerCommand<ButtonInsertCommand>
+  internal sealed class ButtonInsertCommand : BaseCommand<ButtonInsertCommand>
   {
     protected override async Task ExecuteAsync(OleMenuCmdEventArgs e)
     {
       await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-      SendToolWindowMessageFireAndForget("ButtonInsertCommand");
+      await InlineCompletionCommands.RequestAsync();
     }
   }
 }

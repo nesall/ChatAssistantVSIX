@@ -1,0 +1,11 @@
+# Isolated settings layout preview
+
+Run `powershell -NoProfile -ExecutionPolicy Bypass -File Tests/SettingsDialogPreview.ps1` from the repository root. Uses installed MSBuild and the existing Tests/bin/Newtonsoft.Json.dll; no restore/network. SDK discovery may require running outside the restricted sandbox.
+
+Links current SettingsDialog.xaml.cs and ConfigurationStore.cs; copies and transforms XAML namespace assembly qualifiers into preview-local VS stubs. Only fixture files under Tests/preview/bin are supplied to the core. SaveConfiguration throws, service operations are inert, and no window is shown. Generated outputs live in ignored preview/bin and preview/obj directories.
+
+Assertions cover six expected tabs, successful initialization, basic form control counts, scrolling, tab viewport height, footer bounds, unchanged fixtures, and hidden window state. Interaction checks exercise coordinated JSON adoption, parse-error preservation, stale-form repair, transactional capture, scoped provider references, filtered choices, retained buffers, Apply's save boundary, inherited defaults, and dynamic palette changes. Save tests capture the submitted documents without writing fixtures. PNGs use 96 DPI content dimensions 1000x580 and 780x500, without window chrome. The script runs synthetic Light, Dark and HighContrast palettes; actual VS resource integration, modal interactions, disk persistence and real service behavior remain outside this harness.
+
+Visual inspection: minimum-size Sources, Shared providers and Runtime, plus large Generation preview showed readable wrapping, accessible footer controls, and scrolling for long forms. No overlap observed in these images. Generation has nested vertical scrolling; this is functional but worth reviewing in the real VS theme. Actual framed minimum-size windows have less client space than the minimum-size content render.
+
+The harness also compiles the production chat window with inert editor commands and fake provider/stream queries. It checks provider pinning, streaming, Stop, retry history, late callbacks after Clear and solution switches, error recovery, composer drafts, and Markdown emphasis/link rendering. Chat PNGs cover 280- and 360-pixel panes in each synthetic palette. It does not contact real providers or modify the clipboard.

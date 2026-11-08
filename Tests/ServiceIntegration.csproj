@@ -1,0 +1,33 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
+    <AssemblyName>ServiceIntegration</AssemblyName>
+    <RootNamespace>ServiceIntegration</RootNamespace>
+    <OutputPath>service\bin\</OutputPath>
+    <IntermediateOutputPath>service\obj\</IntermediateOutputPath>
+    <LangVersion>latest</LangVersion>
+    <NewtonsoftJsonPath Condition="'$(NewtonsoftJsonPath)' == ''">$(MSBuildProjectDirectory)\..\bin\Debug\Newtonsoft.Json.dll</NewtonsoftJsonPath>
+    <NewtonsoftJsonPath Condition="!Exists('$(NewtonsoftJsonPath)')">$(MSBuildToolsPath)\..\..\..\..\Common7\IDE\CommonExtensions\Microsoft\NuGet\Newtonsoft.Json.dll</NewtonsoftJsonPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="Newtonsoft.Json"><HintPath>$(NewtonsoftJsonPath)</HintPath><Private>True</Private></Reference>
+    <Compile Include="service\bin\sandbox\PhenixCodeCoreService.generated.cs" />
+    <Compile Include="..\Utils\ConfigurationStore.cs"><Link>ConfigurationStore.cs</Link></Compile>
+    <Compile Include="..\Utils\ChatProtocol.cs"><Link>ChatProtocol.cs</Link></Compile>
+    <Compile Include="..\Utils\ChatMessage.cs"><Link>ChatMessage.cs</Link></Compile>
+    <Compile Include="ServiceStubs.cs" />
+    <Compile Include="..\Utils\ServicePathValidation.cs" />
+    <Compile Include="ServiceIntegration.cs" />
+    <Compile Include="FimServiceIntegration.cs" />
+    <EmbeddedResource Include="..\Resources\settings.default.json"><LogicalName>ServiceIntegration.Resources.settings.default.json</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="..\Resources\providers.default.json"><LogicalName>ServiceIntegration.Resources.providers.default.json</LogicalName></EmbeddedResource>
+  </ItemGroup>
+  <Target Name="PrepareIsolatedCore" BeforeTargets="CoreCompile">
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\ServiceIntegration.Prepare.ps1&quot;" />
+  </Target>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

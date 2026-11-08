@@ -30,17 +30,22 @@ namespace ChatAssistantVSIX
       VS.Events.SolutionEvents.OnAfterCloseSolution += OnAfterCloseSolution; // triggeres package load error
       VS.Events.SolutionEvents.OnAfterOpenSolution += OnAfterOpenSolution;
       await PhenixCodeCoreService.InitAsync();
+      // The package can load after Visual Studio has already restored a solution.
+      var solution = await VS.Solutions.GetCurrentSolutionAsync();
+      if (solution != null && string.IsNullOrEmpty(PhenixCodeCoreService.SolutionSettingsPath))
+        PhenixCodeCoreService.InitOnSolutionReady(solution);
     }
 
     private void OnAfterOpenSolution(Solution solution)
     {
+      InlineCompletionCommands.CancelAllAsync().FireAndForget();
       PhenixCodeCoreService.InitOnSolutionReady(solution);
     }
 
     private void OnAfterCloseSolution()
     {
       ThreadHelper.JoinableTaskFactory
-          .RunAsync(() => PhenixCodeCoreService.ShutdownServiceAsync())
+          .RunAsync(async () => { await InlineCompletionCommands.CancelAllAsync(); await PhenixCodeCoreService.CloseSolutionAsync(); })
           .FireAndForget();
     }
 
@@ -49,9 +54,10 @@ namespace ChatAssistantVSIX
       if (disposing)
       {
         VS.Events.SolutionEvents.OnAfterCloseSolution -= OnAfterCloseSolution;
+        VS.Events.SolutionEvents.OnAfterOpenSolution -= OnAfterOpenSolution;
 
-        // Final safety check: Kill if VS is closing entirely
-        OnAfterCloseSolution();
+        // Await any pending solution shutdown before Visual Studio tears down the package.
+        JoinableTaskFactory.Run(() => PhenixCodeCoreService.CloseSolutionAsync());
       }
       base.Dispose(disposing);
     }

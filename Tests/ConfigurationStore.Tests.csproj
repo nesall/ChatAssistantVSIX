@@ -1,0 +1,27 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
+    <AssemblyName>ConfigurationStore.Tests</AssemblyName>
+    <OutputPath>bin\</OutputPath>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\bin\Debug\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Compile Include="..\Utils\ConfigurationStore.cs"><Link>ConfigurationStore.cs</Link></Compile>
+    <Compile Include="..\Utils\ChatProtocol.cs"><Link>ChatProtocol.cs</Link></Compile>
+    <Compile Include="..\Utils\ChatMessage.cs"><Link>ChatMessage.cs</Link></Compile>
+    <Compile Include="..\Utils\ChatSession.cs"><Link>ChatSession.cs</Link></Compile>
+    <Compile Include="..\Utils\ChatProvider.cs"><Link>ChatProvider.cs</Link></Compile>
+    <Compile Include="..\Utils\InlineCompletionSession.cs"/>
+    <Compile Include="InlineCompletionSession.Tests.cs"/>
+    <Compile Include="ChatState.Tests.cs" />
+    <Compile Include="ConfigurationStore.Tests.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

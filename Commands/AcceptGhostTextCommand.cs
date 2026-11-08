@@ -1,14 +1,14 @@
-﻿using ChatAssistantVSIX.ToolWindows;
+﻿using ChatAssistantVSIX.Utils;
 
 namespace ChatAssistantVSIX
 {
   [Command(PackageIds.cmdidAcceptGhostText)]
-  internal sealed class AcceptGhostTextCommand : MessengerCommand<AcceptGhostTextCommand>
+  internal sealed class AcceptGhostTextCommand : BaseCommand<AcceptGhostTextCommand>
   {
     protected override async Task ExecuteAsync(OleMenuCmdEventArgs e)
     {
       await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-      SendToolWindowMessageFireAndForget("cmdidAcceptGhostText");
+      await InlineCompletionCommands.AcceptAsync();
     }
   }
 }

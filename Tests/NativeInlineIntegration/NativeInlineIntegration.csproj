@@ -1,0 +1,43 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+ <PropertyGroup>
+  <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+  <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
+  <ProbeVsRoot Condition="'$(ProbeVsRoot)' == ''">C:\Program Files\Microsoft Visual Studio\18\Community</ProbeVsRoot>
+  <EditorRoot>$(ProbeVsRoot)\Common7\IDE\CommonExtensions\Microsoft\Editor</EditorRoot>
+  <VSToolsPath>$(ProbeVsRoot)\MSBuild\Microsoft\VisualStudio\v18.0</VSToolsPath>
+  <VisualStudioVersion>18.0</VisualStudioVersion>
+ </PropertyGroup>
+ <Import Project="$(MSBuildExtensionsPath32)\$(MSBuildToolsVersion)\Microsoft.Common.props"/>
+ <PropertyGroup>
+  <OutputType>Library</OutputType><TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
+  <AssemblyName>PhenixCode.NativeInlineIntegration</AssemblyName><RootNamespace>PhenixCode.NativeInlineIntegration</RootNamespace>
+  <LangVersion>latest</LangVersion><OutputPath>bin\</OutputPath><IntermediateOutputPath>obj\</IntermediateOutputPath>
+  <GeneratePkgDefFile>false</GeneratePkgDefFile><IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
+  <DeployExtension>false</DeployExtension><CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
+ </PropertyGroup>
+ <ItemGroup>
+  <Reference Include="System"/><Reference Include="System.Core"/><Reference Include="System.Xaml"/><Reference Include="System.ComponentModel.Composition"/>
+  <Reference Include="WindowsBase"/><Reference Include="PresentationCore"/><Reference Include="PresentationFramework"/>
+  <Reference Include="Microsoft.VisualStudio.CoreUtility"><HintPath>$(EditorRoot)\Microsoft.VisualStudio.CoreUtility.dll</HintPath><Private>false</Private></Reference>
+  <Reference Include="Microsoft.VisualStudio.Text.Data"><HintPath>$(EditorRoot)\Microsoft.VisualStudio.Text.Data.dll</HintPath><Private>false</Private></Reference>
+  <Reference Include="Microsoft.VisualStudio.Text.Logic"><HintPath>$(EditorRoot)\Microsoft.VisualStudio.Text.Logic.dll</HintPath><Private>false</Private></Reference>
+  <Reference Include="Microsoft.VisualStudio.Text.UI"><HintPath>$(EditorRoot)\Microsoft.VisualStudio.Text.UI.dll</HintPath><Private>false</Private></Reference>
+  <Reference Include="Microsoft.VisualStudio.Text.UI.Wpf"><HintPath>$(EditorRoot)\Microsoft.VisualStudio.Text.UI.Wpf.dll</HintPath><Private>false</Private></Reference>
+  <Reference Include="Microsoft.VisualStudio.Language"><HintPath>$(EditorRoot)\Microsoft.VisualStudio.Language.dll</HintPath><Private>false</Private></Reference>
+  <Reference Include="Microsoft.VisualStudio.Threading"><HintPath>$(ProbeVsRoot)\VSSDK\VisualStudioIntegration\Tools\Bin\lib\Microsoft.VisualStudio.Threading.dll</HintPath><Private>false</Private></Reference>
+  <Reference Include="Microsoft.VisualStudio.Shell.15.0"><HintPath>$(ProbeVsRoot)\Common7\IDE\PublicAssemblies\Microsoft.VisualStudio.Shell.15.0.dll</HintPath><Private>false</Private></Reference>
+  <Reference Include="Microsoft.VisualStudio.Shell.Framework"><HintPath>$(ProbeVsRoot)\Common7\IDE\PublicAssemblies\Microsoft.VisualStudio.Shell.Framework.dll</HintPath><Private>false</Private></Reference>
+  <Reference Include="netstandard"/>
+  <Compile Include="NativeInlineIntegration.cs"/>
+  <Compile Include="..\..\Utils\InlineCompletionSession.cs"/>
+  <Compile Include="..\..\Utils\InlineCompletionService.cs"/>
+  <Compile Include="..\..\Utils\InlineCompletionProgress.cs"/>
+  <Compile Include="..\..\Utils\InlineCompletionCommands.cs"/>
+  <Reference Include="Microsoft.VisualStudio.Language.Intellisense"><HintPath>$(EditorRoot)\Microsoft.VisualStudio.Language.Intellisense.dll</HintPath><Private>false</Private></Reference>
+  <Reference Include="Community.VisualStudio.Toolkit"><HintPath>..\..\bin\Debug\Community.VisualStudio.Toolkit.dll</HintPath><Private>true</Private></Reference>
+  <Reference Include="Newtonsoft.Json"><HintPath>..\bin\Newtonsoft.Json.dll</HintPath><Private>true</Private></Reference>
+  <None Include="source.extension.vsixmanifest"><SubType>Designer</SubType></None>
+ </ItemGroup>
+ <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
+ <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets"/>
+</Project>

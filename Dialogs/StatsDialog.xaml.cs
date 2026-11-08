@@ -1,52 +1,77 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using ChatAssistantVSIX.Utils;
+using Microsoft.VisualStudio.PlatformUI;
+using Microsoft.VisualStudio.Threading;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace ChatAssistantVSIX.Dialogs
 {
-  public partial class StatsDialog : Window
+  public partial class StatsDialog : DialogWindow
   {
-    public string ApiKey
-    {
-      get => ApiKeyTextBox.Text;
-      set => ApiKeyTextBox.Text = value;
-    }
-
-    public bool EnableFeature
-    {
-      get => EnableFeatureCheckBox.IsChecked == true;
-      set => EnableFeatureCheckBox.IsChecked = value;
-    }
+    private CancellationTokenSource request;
+    private bool closed;
+    private string displayedScope;
 
     public StatsDialog()
     {
       InitializeComponent();
-      // Optionally initialize from persisted settings here
-      // ApiKey = Properties.Settings.Default.ApiKey;
-      // EnableFeature = Properties.Settings.Default.EnableFeature;
     }
 
-    private void Ok_Click(object sender, RoutedEventArgs e)
+    private void OnLoaded(object sender, RoutedEventArgs e)
+      => ThreadHelper.JoinableTaskFactory.RunAsync(RefreshAsync).FireAndForget();
+
+    private void OnRefresh(object sender, RoutedEventArgs e)
+      => ThreadHelper.JoinableTaskFactory.RunAsync(RefreshAsync).FireAndForget();
+
+    private async Task RefreshAsync()
     {
-      DialogResult = true;
-      Close();
+      if (closed || request != null) return;
+      var scope = PhenixCodeCoreService.SolutionSettingsPath;
+      if (!string.Equals(scope, displayedScope, StringComparison.OrdinalIgnoreCase)) StatisticsContent.DataContext = null;
+      var cancellation = new CancellationTokenSource();
+      request = cancellation;
+      Refresh.IsEnabled = false;
+      Status.Text = "Loading statistics…";
+      try
+      {
+        var text = await PhenixCodeCoreService.GetStatsAsync(cancellation.Token);
+        if (closed) return;
+        if (!string.Equals(scope, PhenixCodeCoreService.SolutionSettingsPath, StringComparison.OrdinalIgnoreCase))
+        {
+          StatisticsContent.DataContext = null;
+          Status.Text = "The solution changed. Refresh to load its statistics.";
+          return;
+        }
+        var statistics = IndexStatistics.Parse(text, PhenixCodeCoreService.SolutionDir);
+        StatisticsContent.DataContext = statistics;
+        displayedScope = scope;
+        Status.Text = "Statistics loaded.";
+      }
+      catch (Exception ex)
+      {
+        if (closed) return;
+        if (!string.Equals(scope, PhenixCodeCoreService.SolutionSettingsPath, StringComparison.OrdinalIgnoreCase))
+          StatisticsContent.DataContext = null;
+        var message = ex is OperationCanceledException ? "The request timed out. Try Refresh." : ex.Message;
+        Status.Text = "Could not load statistics. " + message;
+        if (StatisticsContent.DataContext != null) Status.Text += " Displaying previously loaded statistics.";
+        Diag.OutputMsg("[ERR] Statistics: " + message);
+      }
+      finally
+      {
+        request = null;
+        cancellation.Dispose();
+        if (!closed) Refresh.IsEnabled = true;
+      }
     }
 
-    private void Cancel_Click(object sender, RoutedEventArgs e)
+    private void OnClosed(object sender, EventArgs e)
     {
-      DialogResult = false;
-      Close();
+      closed = true;
+      request?.Cancel();
     }
+
+    private void OnClose(object sender, RoutedEventArgs e) => Close();
   }
 }

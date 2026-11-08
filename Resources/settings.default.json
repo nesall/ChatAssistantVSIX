@@ -2,24 +2,10 @@
   "_comment": "PhenixCode RAG minimal configuration",
   "_version": "1.0.0",
   "_docs": "https://github.com/nesall/embedder_cpp/wiki/configuration",
-
   "tokenizer": {
     "config_path": "./bge_tokenizer.json"
   },
   "embedding": {
-    "apis": [
-      {
-        "_comment0": "You can run an embedding model locally (no GPU required), for example:",
-        "_comment1": "./llama-server -m ./coderankembed-q4_k_m.gguf --embedding --pooling cls -ub 8192 --port 8584 ",
-        "api_key": "",
-        "api_url": "http://127.0.0.1:8584/embedding",
-        "id": "custom",
-        "model": "nomic-ai/CodeRankEmbed",
-        "name": "local-coder",
-        "document_format": "{}",
-        "query_format": "{}"
-      }
-    ],
     "current_api": "custom",
     "batch_size": 4,
     "timeout_ms": 30000,
@@ -28,148 +14,11 @@
     "prepend_label_format": "[Source: {}]\n"
   },
   "generation": {
-    "apis": [
-      {
-        "_comment0": "You can run an llm model locally (no GPU required), for example:",
-        "_comment1": "./llama-server -m ./qwen2.5-coder-1.5b-instruct-q4_k_m.gguf -c 32768 --port 8585 -np 1",
-        "api_key": "",
-        "api_url": "http://127.0.0.1:8585/v1/chat/completions",
-        "enabled": true,
-        "id": "custom",
-        "model": "refact-1.6b-fim",
-        "name": "Local",
-        "pricing_tpm": {
-          "input": 0,
-          "output": 0
-        },
-        "fim": {
-          "api_url": "http://127.0.0.1:8585/v1/completions",
-          "format": "<fim_prefix>{}<fim_suffix>{}<fim_middle>",
-          "stop_tokens": [ "\n" ]
-        }
-      },
-      {
-        "api_key": "",
-        "api_url": "http://127.0.0.1:8587/v1/chat/completions",
-        "enabled": true,
-        "id": "local-fim-gemma",
-        "model": "codegemma-2b-fim",
-        "name": "Local",
-        "pricing_tpm": {
-          "input": 0,
-          "output": 0
-        },
-        "fim": {
-          "api_url": "http://127.0.0.1:8587/v1/completions",
-          "format": "<|fim_prefix|>{}<|fim_suffix|>{}<|fim_middle|>",
-          "file_divider_token": "<|file_separator|>",
-          "stop_tokens": [ "\n" ]
-        }
-      },
-      {
-        "api_key": "${MISTRAL_API_KEY}",
-        "api_url": "https://api.mistral.ai/v1/chat/completions",
-        "id": "mistral-devstral-small",
-        "model": "devstral-small-latest",
-        "name": "Mistral",
-        "pricing_tpm": {
-          "input": 0.1,
-          "output": 0.3
-        },
-        "context_length": 128000
-      },
-      {
-        "api_key": "${CODESTRAL_API_KEY}",
-        "api_url": "https://codestral.mistral.ai/v1/chat/completions",
-        "context_length": 256000,
-        "enabled": true,
-        "id": "mistral-codestral",
-        "model": "codestral-latest",
-        "name": "Mistral",
-        "fim": {
-          "api_url": "https://codestral.mistral.ai/v1/fim/completions",
-          "prefix_name": "prompt",
-          "suffix_name": "suffix",
-          "stop_tokens": []
-        },
-        "pricing_tpm": {
-          "input": 0.3,
-          "output": 0.9
-        }
-      },
-      {
-        "api_key": "${GEMINI_API_KEY}",
-        "api_url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-        "id": "gemini-2.0-flash",
-        "model": "gemini-2.0-flash",
-        "name": "Gemini",
-        "pricing_tpm": {
-          "input": 0.1,
-          "output": 0.4
-        },
-        "context_length": 1000000
-      },
-      {
-        "api_key": "${DEEPSEEK_API_KEY}",
-        "api_url": "https://api.deepseek.com/chat/completions",
-        "id": "deepseek",
-        "model": "deepseek-chat",
-        "name": "DeepSeek",
-        "pricing_tpm": {
-          "cached_input": 0.028,
-          "input": 0.28,
-          "output": 0.42
-        },
-        "context_length": 128000
-      },
-      {
-        "api_key": "${XAI_API_KEY}",
-        "api_url": "https://api.x.ai/v1/chat/completions",
-        "id": "xai",
-        "model": "grok-4-fast-non-reasoning",
-        "name": "X AI",
-        "pricing_tpm": {
-          "cached_input": 0.05,
-          "input": 0.2,
-          "output": 0.5
-        },
-        "context_length": 2000000
-      },
-      {
-        "api_key": "${OPENAI_API_KEY}",
-        "api_url": "https://api.openai.com/v1/chat/completions",
-        "id": "openai-4o-mini",
-        "model": "gpt-4o-mini",
-        "name": "OpenAI",
-        "max_tokens_name": "max_completion_tokens",
-        "pricing_tpm": {
-          "cached_input": 0.075,
-          "input": 0.15,
-          "output": 0.6
-        },
-        "context_length": 128000
-      },
-      {
-        "api_key": "${MINIMAX_API_KEY}",
-        "api_url": "https://api.x.ai/v1/chat/completions",
-        "context_length": 204000,
-        "enabled": true,
-        "id": "minimax-m2.1",
-        "model": "MiniMax-M2.1",
-        "name": "Minimax",
-        "pricing_tpm": {
-          "cached_input": 0.03,
-          "input": 0.3,
-          "output": 1.2
-        }
-      }
-    ],
     "current_api": "custom",
     "timeout_ms": 120000,
     "max_chunks": 7,
     "max_full_sources": 2,
     "max_related_per_source": 3,
-    "max_context_tokens": 64000,
     "default_temperature": 0.1,
     "default_max_tokens": 2048,
     "default_max_tokens_name": "max_tokens",
@@ -179,7 +28,19 @@
       "min_chunks": 3,
       "max_chunks": 15,
       "threshold_ratio": 0.75
-    }
+    },
+    "enabled_providers": [
+      "custom",
+      "local-fim-gemma",
+      "mistral-devstral-small",
+      "mistral-codestral",
+      "gemini-2.0-flash",
+      "deepseek",
+      "xai",
+      "openai-4o-mini",
+      "minimax-m2.1"
+    ],
+    "default_context_length": 64000
   },
   "database": {
     "sqlite_path": "$(SolutionDir)/.phenixcode/db_metadata.db",
@@ -200,7 +61,7 @@
     "project_id": "",
     "project_title": "Default Project Title",
     "project_description": "",
-    "paths":[
+    "paths": [
       {
         "exclude": [],
         "extensions": [],
@@ -209,7 +70,23 @@
         "type": "directory"
       }
     ],
-    "default_extensions": [ ".c", ".cpp", ".cxx", ".h", ".hpp", ".py", ".js", ".ts", ".java", ".rs", ".cs", ".xaml", ".php", ".jsp", ".md" ],
+    "default_extensions": [
+      ".c",
+      ".cpp",
+      ".cxx",
+      ".h",
+      ".hpp",
+      ".py",
+      ".js",
+      ".ts",
+      ".java",
+      ".rs",
+      ".cs",
+      ".xaml",
+      ".php",
+      ".jsp",
+      ".md"
+    ],
     "global_exclude": [
       "*/node_modules/*",
       "*.min.js",

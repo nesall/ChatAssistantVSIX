@@ -1,0 +1,34 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+ <PropertyGroup>
+  <OutputType>Exe</OutputType><TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
+  <AssemblyName>SettingsDialogPreview</AssemblyName><LangVersion>latest</LangVersion>
+  <OutputPath>preview\bin\</OutputPath><IntermediateOutputPath>preview\obj\</IntermediateOutputPath>
+ </PropertyGroup>
+ <ItemGroup>
+  <Reference Include="System"/><Reference Include="System.Core"/><Reference Include="System.Xaml"/><Reference Include="System.Xml"/>
+  <Reference Include="WindowsBase"/><Reference Include="PresentationCore"/><Reference Include="PresentationFramework"/>
+  <Reference Include="Newtonsoft.Json"><HintPath>$(MSBuildThisFileDirectory)bin\Newtonsoft.Json.dll</HintPath></Reference>
+  <Reference Include="Markdig"><HintPath>..\bin\Debug\Markdig.dll</HintPath></Reference>
+  <Reference Include="System.Net.Http"/>
+  <Compile Include="..\Dialogs\SettingsDialog.xaml.cs"><Link>SettingsDialog.xaml.cs</Link></Compile>
+  <Compile Include="..\Dialogs\StatsDialog.xaml.cs"/>
+  <Compile Include="..\Utils\IndexStatistics.cs"/>
+  <Compile Include="..\Utils\ServicePathValidation.cs"/>
+  <Page Include="preview\obj\StatsDialog.xaml"><Link>StatsDialog.xaml</Link></Page>
+  <Compile Include="StatsDialogInteractions.cs"/>
+  <Compile Include="..\Utils\ConfigurationStore.cs"><Link>ConfigurationStore.cs</Link></Compile><Compile Include="PreviewStubs.cs"/><Compile Include="SettingsDialogPreview.cs"/><Compile Include="SettingsDialogInteractions.cs"/>
+  <Page Include="preview\obj\SettingsDialog.xaml"><Link>SettingsDialog.xaml</Link></Page>
+  <Page Include="preview\obj\MyToolWindowControl.xaml"><Link>MyToolWindowControl.xaml</Link></Page>
+  <Compile Include="..\ToolWindows\MyToolWindowControl.xaml.cs"/>
+  <Compile Include="..\ToolWindows\ToolWindowMessenger.cs"/>
+  <Compile Include="..\Utils\ChatMessage.cs"/>
+  <Compile Include="..\Utils\ChatSession.cs"/>
+  <Compile Include="..\Utils\ChatProvider.cs"/>
+  <Compile Include="..\Utils\MarkdownFlowDocument.cs"/>
+  <Compile Include="ChatWindowInteractions.cs"/>
+ </ItemGroup>
+ <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
+</Project>
+
+
+

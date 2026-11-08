@@ -67,17 +67,21 @@
       <DependentUpon>source.extension.vsixmanifest</DependentUpon>
     </Compile>
     <Compile Include="ToolWindows\ToolWindowMessenger.cs" />
-    <Compile Include="Utils\Adornment\GhostAdornment.xaml.cs">
-      <DependentUpon>GhostAdornment.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Utils\Adornment\GhostAdornmentFactory.cs" />
-    <Compile Include="Utils\Adornment\GhostAdornmentManager.cs" />
-    <Compile Include="Utils\Adornment\MyGhostTextLayerDefinition.cs" />
+    <Compile Include="Utils\InlineCompletionSession.cs" />
+    <Compile Include="Utils\InlineCompletionService.cs" />
+    <Compile Include="Utils\InlineCompletionProgress.cs" />
+    <Compile Include="Utils\ServicePathValidation.cs" />
+    <Compile Include="Utils\InlineCompletionCommands.cs" />
     <Compile Include="Utils\ChatMessage.cs" />
+    <Compile Include="Utils\ChatSession.cs" />
+    <Compile Include="Utils\ChatProvider.cs" />
+    <Compile Include="Utils\IndexStatistics.cs" />
+    <Compile Include="Utils\ChatProtocol.cs" />
     <Compile Include="Utils\Diag.cs" />
     <Compile Include="Utils\MarkdownFlowDocument.cs" />
     <Compile Include="Utils\PathUtils.cs" />
     <Compile Include="Utils\PhenixCodeCoreService.cs" />
+    <Compile Include="Utils\ConfigurationStore.cs" />
     <Compile Include="VSCommandTable.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -96,6 +100,7 @@
     <EmbeddedResource Include="Resources\settings.default.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="Resources\providers.default.json" />
     <None Include="source.extension.vsixmanifest">
       <SubType>Designer</SubType>
       <Generator>VsixManifestGenerator</Generator>
@@ -130,10 +135,6 @@
     <Compile Include="ToolWindows\MyToolWindowControl.xaml.cs">
       <DependentUpon>MyToolWindowControl.xaml</DependentUpon>
     </Compile>
-    <Page Include="Utils\Adornment\GhostAdornment.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -148,6 +149,11 @@
     <Reference Include="System.ComponentModel.Composition" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.Language" Version="17.14.249" ExcludeAssets="Runtime" />
+    <PackageReference Include="Microsoft.VisualStudio.Imaging.Interop.14.0.DesignTime" Version="17.13.40008" ExcludeAssets="Runtime" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Microsoft.VisualStudio.Language.Intellisense" Version="17.14.249" ExcludeAssets="Runtime" />
+    <PackageReference Include="Microsoft.VisualStudio.Text.UI.Wpf" Version="17.14.249" ExcludeAssets="Runtime" />
     <PackageReference Include="Community.VisualStudio.VSCT" Version="16.0.29.6" PrivateAssets="all" />
     <PackageReference Include="Community.VisualStudio.Toolkit.17" Version="17.0.507" ExcludeAssets="Runtime" />
     <PackageReference Include="Markdig">
